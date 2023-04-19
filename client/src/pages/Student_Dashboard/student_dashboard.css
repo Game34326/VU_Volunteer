@@ -1,0 +1,87 @@
+@media only screen and (max-width: 768px) {
+    .navbar-parent-container {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+      }
+      .table-responsive {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        -ms-overflow-style: -ms-autohiding-scrollbar;
+      }
+      .table-responsive thead {
+        display: none;
+      }
+      .table-responsive td,
+      .table-responsive th {
+        display: block;
+        text-align: left;
+      }
+      .table-responsive td {
+        margin-top: 16px;
+      }
+      .table-responsive td::before {
+        content: attr(data-label);
+        display: inline-block;
+        font-weight: bold;
+        margin-right: 16px;
+      }
+      .table-responsive td:last-child {
+        margin-bottom: 16px;
+      }
+      .delete-btn {
+        margin-top: 16px;
+      }
+      .horizontal-line {
+        border-top: 1px solid black;
+      }
+      .table-responsive .table {
+        border: none;
+      }
+  }
+
+  .logout-button:hover {
+    color: white !important;
+  }
+
+
+.nameText {
+    font-size: 18px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    justify-content: center;
+  } 
+
+  tr {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .image-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    grid-gap: 10px;
+  }
+  
+  .image-container img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+  }
+
+  @font-face {
+    font-family: 'TH Sarabun';
+    src: url('../../assets/THSarabunNew.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+  }
+
+  .thai-font{
+    font-family: 'TH Sarabun', sans-serif;
+    font-size: 25px;
+  }
+  

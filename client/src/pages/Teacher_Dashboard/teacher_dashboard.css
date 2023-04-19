@@ -1,0 +1,36 @@
+@media only screen and (max-width: 768px) {
+    .navbar-parent-container {
+        width: 100%;
+        padding: 0;
+        margin: 0;
+      }
+      .form_btn {
+        width: 50%;
+      }
+  }
+
+  .logout-button:hover {
+    color: white !important;
+  }
+
+  @font-face {
+    font-family: 'TH Sarabun';
+    src: url('../../assets/THSarabunNew.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+  }
+
+  .thai-font{
+    font-family: 'TH Sarabun', sans-serif;
+    font-size: 25px;
+  }
+
+  .searchbox{
+    border-radius: 10px;
+  }
+
+  /* input::placeholder{
+    color: white;
+  } */
+
+  

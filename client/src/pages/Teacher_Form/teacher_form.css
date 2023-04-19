@@ -1,0 +1,49 @@
+@media only screen and (max-width: 600px) {
+    body {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .nameText{
+      text-align: center;
+    }
+    .form_container{
+      width: 100%;
+    }
+  }
+  
+  .form_container{
+      width: 50%;
+      margin-top: 10px;
+  }
+  
+  .nameText{
+      text-align: center;
+      margin-top: 20px;
+  }
+
+  .form-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .form-group {
+    padding: 10px;
+  }
+
+  @font-face {
+    font-family: 'TH Sarabun';
+    src: url('../../assets/THSarabunNew.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+  }
+  
+  .thai-font{
+    font-family: 'TH Sarabun', sans-serif;
+    font-size: 22px;
+  }
+  
+  
+  

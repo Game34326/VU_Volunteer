@@ -1,0 +1,71 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+@font-face {
+  font-family: 'TH Sarabun';
+  src: url('../../assets/THSarabunNew.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.login-page {
+  background-color: #C68501;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-page img {
+  width: 100px;
+  margin-bottom: 20px;
+}
+
+@media only screen and (max-width: 768px) {
+  /* apply styles only on mobile devices with a maximum width of 768px */
+  .login-page {
+    padding: 20px;
+  }
+  
+  .login-page img {
+    width: 80px;
+    margin-bottom: 10px;
+  }
+}
+
+.thai-font{
+  font-family: 'TH Sarabun', sans-serif;
+}
+
+.text-color{
+  color: #5A990F;
+}
+
+.inputCon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.textField {
+  margin-bottom: 24px; 
+}
+
+.loginBtn {
+  width: 60%; 
+  height: 48px; 
+  margin-top: 24px;
+}
+
+
+
+
+
+
