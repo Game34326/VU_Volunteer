@@ -4,14 +4,14 @@
         padding: 0;
         margin: 0;
       }
-      .table-responsive {
+      /* .table-responsive {
         display: block;
         width: 100%;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         -ms-overflow-style: -ms-autohiding-scrollbar;
-      }
-      .table-responsive thead {
+      } */
+      /* .table-responsive thead {
         display: none;
       }
       .table-responsive td,
@@ -30,7 +30,7 @@
       }
       .table-responsive td:last-child {
         margin-bottom: 16px;
-      }
+      } */
       .delete-btn {
         margin-top: 16px;
       }

@@ -5,7 +5,6 @@ var cors = require("cors");
 var multer = require("multer");
 var fs = require("fs");
 
-
 const app = express();
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -19,14 +18,17 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage: storage,
   fileFilter: function (req, file, cb) {
-    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'application/pdf') {
-      cb(null, true)
+    if (
+      file.mimetype === "image/jpeg" ||
+      file.mimetype === "image/png" ||
+      file.mimetype === "application/pdf"
+    ) {
+      cb(null, true);
     } else {
-      cb(new Error('Only image and pdf files are allowed'))
+      cb(new Error("Only image and pdf files are allowed"));
     }
-  }
-})
-
+  },
+});
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -105,7 +107,6 @@ app.post(
   }
 );
 
-
 app.get("/teacher_form", async (req, res) => {
   try {
     // Open a database connection from the connection pool
@@ -145,7 +146,6 @@ app.get("/teacher_form", async (req, res) => {
   }
 });
 
-
 app.get("/teacher_form_display", async (req, res) => {
   try {
     // Open a database connection from the connection pool
@@ -156,14 +156,15 @@ app.get("/teacher_form_display", async (req, res) => {
     // Select all data from the teacher_form table where activity_year matches
     const result = await connection.query(
       `SELECT * FROM teacher_form WHERE activity_year = '${activityYear}'`
-    );   
+    );
 
     // Convert the binary image data to base64-encoded strings
     const data = result.recordset.map((row) => ({
       ...row,
-      activity_picture: row.activity_picture ? Buffer.from(row.activity_picture).toString("base64") : null,
+      activity_picture: row.activity_picture
+        ? Buffer.from(row.activity_picture).toString("base64")
+        : null,
     }));
-    
 
     // Close the database connection
     await connection.close();
@@ -194,6 +195,8 @@ app.post(
         activity_position,
         student_id,
         student_name,
+        fac_name,
+        maj_name
       } = req.body;
       const pictures = req.files["activity_pictures"];
       const pdfFile = req.files["activity_document"][0];
@@ -202,20 +205,22 @@ app.post(
       const pool = await sql.connect(config);
 
       const result = await pool
-          .request()
-          .input("activity_name", sql.VarChar, activity_name)
-          .input("activity_year", sql.VarChar, activity_year)
-          .input("activity_date", sql.VarChar, activity_date)
-          .input("activity_hours", sql.VarChar, activity_hours)
-          .input("activity_type", sql.VarChar, activity_type)
-          .input("activity_target", sql.VarChar, activity_target)
-          .input("activity_position", sql.VarChar, activity_position)
-          .input("student_id", sql.VarChar, student_id)
-          .input("student_name", sql.VarChar, student_name)
-          .input("activity_document", sql.VarBinary, pdfContent)
-          .query(
-            "INSERT INTO student_form (activity_name, activity_year, activity_date, activity_hours, activity_type, activity_target, activity_position, student_id, student_name, activity_document) OUTPUT INSERTED.s_id VALUES (@activity_name, @activity_year, @activity_date, @activity_hours, @activity_type, @activity_target, @activity_position, @student_id, @student_name, @activity_document)"
-          );
+        .request()
+        .input("activity_name", sql.VarChar, activity_name)
+        .input("activity_year", sql.VarChar, activity_year)
+        .input("activity_date", sql.VarChar, activity_date)
+        .input("activity_hours", sql.VarChar, activity_hours)
+        .input("activity_type", sql.VarChar, activity_type)
+        .input("activity_target", sql.VarChar, activity_target)
+        .input("activity_position", sql.VarChar, activity_position)
+        .input("student_id", sql.VarChar, student_id)
+        .input("student_name", sql.VarChar, student_name)
+        .input("fac_name", sql.VarChar, fac_name)
+        .input("maj_name", sql.VarChar, maj_name)
+        .input("activity_document", sql.VarBinary, pdfContent)
+        .query(
+          "INSERT INTO student_form (activity_name, activity_year, activity_date, activity_hours, activity_type, activity_target, activity_position, student_id, student_name, activity_document, fac_name, maj_name) OUTPUT INSERTED.s_id VALUES (@activity_name, @activity_year, @activity_date, @activity_hours, @activity_type, @activity_target, @activity_position, @student_id, @student_name, @activity_document, @fac_name, @maj_name)"
+        );
 
       const s_id = result.recordset[0].s_id;
 
@@ -223,10 +228,13 @@ app.post(
         const picture = pictures[i];
         const content = fs.readFileSync(picture.path);
 
-        await pool.request()
+        await pool
+          .request()
           .input("activity_pictures", sql.VarBinary, content)
           .input("s_id", sql.Int, s_id)
-          .query("INSERT INTO activity_pictures (picture_data, s_id) VALUES (@activity_pictures, @s_id)");
+          .query(
+            "INSERT INTO activity_pictures (picture_data, s_id) VALUES (@activity_pictures, @s_id)"
+          );
 
         fs.unlinkSync(picture.path);
       }
@@ -243,14 +251,14 @@ app.post(
 
 app.post(
   "/student_form_inside",
-  upload.fields([
-    { name: "activity_pictures", maxCount: 10 },]),
+  upload.fields([{ name: "activity_pictures", maxCount: 10 }]),
   async (req, res) => {
     try {
       const {
         activity_name,
         activity_year,
         activity_date,
+        last_date,
         activity_hours,
         activity_type,
         activity_target,
@@ -258,26 +266,31 @@ app.post(
         student_id,
         student_name,
         t_id,
+        fac_name,
+        maj_name,
       } = req.body;
       const pictures = req.files["activity_pictures"];
 
       const pool = await sql.connect(config);
 
       const result = await pool
-          .request()
-          .input("activity_name", sql.VarChar, activity_name)
-          .input("activity_year", sql.VarChar, activity_year)
-          .input("activity_date", sql.VarChar, activity_date)
-          .input("activity_hours", sql.VarChar, activity_hours)
-          .input("activity_type", sql.VarChar, activity_type)
-          .input("activity_target", sql.VarChar, activity_target)
-          .input("activity_position", sql.VarChar, activity_position)
-          .input("student_id", sql.VarChar, student_id)
-          .input("student_name", sql.VarChar, student_name)
-          .input("t_id", sql.VarChar, t_id)
-          .query(
-            "INSERT INTO student_form (activity_name, activity_year, activity_date, activity_hours, activity_type, activity_target, activity_position, student_id, student_name, t_id) OUTPUT INSERTED.s_id VALUES (@activity_name, @activity_year, @activity_date, @activity_hours, @activity_type, @activity_target, @activity_position, @student_id, @student_name, @t_id)"
-          );
+        .request()
+        .input("activity_name", sql.VarChar, activity_name)
+        .input("activity_year", sql.VarChar, activity_year)
+        .input("activity_date", sql.VarChar, activity_date)
+        .input("last_date", sql.VarChar, last_date)
+        .input("activity_hours", sql.VarChar, activity_hours)
+        .input("activity_type", sql.VarChar, activity_type)
+        .input("activity_target", sql.VarChar, activity_target)
+        .input("activity_position", sql.VarChar, activity_position)
+        .input("student_id", sql.VarChar, student_id)
+        .input("student_name", sql.VarChar, student_name)
+        .input("t_id", sql.VarChar, t_id)
+        .input("fac_name", sql.VarChar, fac_name)
+        .input("maj_name", sql.VarChar, maj_name)
+        .query(
+          "INSERT INTO student_form (activity_name, activity_year, activity_date, activity_hours, activity_type, activity_target, activity_position, student_id, student_name, t_id, last_date, fac_name, maj_name) OUTPUT INSERTED.s_id VALUES (@activity_name, @activity_year, @activity_date, @activity_hours, @activity_type, @activity_target, @activity_position, @student_id, @student_name, @t_id, @last_date, @fac_name, @maj_name)"
+        );
 
       const s_id = result.recordset[0].s_id;
 
@@ -285,10 +298,13 @@ app.post(
         const picture = pictures[i];
         const content = fs.readFileSync(picture.path);
 
-        await pool.request()
+        await pool
+          .request()
           .input("activity_pictures", sql.VarBinary, content)
           .input("s_id", sql.Int, s_id)
-          .query("INSERT INTO activity_pictures (picture_data, s_id) VALUES (@activity_pictures, @s_id)");
+          .query(
+            "INSERT INTO activity_pictures (picture_data, s_id) VALUES (@activity_pictures, @s_id)"
+          );
 
         fs.unlinkSync(picture.path);
       }
@@ -316,7 +332,8 @@ app.get("/student_form", async (req, res) => {
       WHERE student_form.student_id = ${studentId}
       GROUP BY student_form.s_id, student_form.activity_name, student_form.activity_year, student_form.activity_date,
       student_form.activity_hours, student_form.activity_type, student_form.activity_target, student_form.activity_position,
-      student_form.student_id, student_form.student_name, student_form.activity_document, student_form.t_id
+      student_form.student_id, student_form.student_name, student_form.activity_document, student_form.t_id, student_form.last_date,
+      student_form.fac_name, student_form.maj_name, student_form.check_activity, student_form.check_inside
       `
     );
 
@@ -361,13 +378,13 @@ app.get("/student_form_display", async (req, res) => {
     // Open a database connection from the connection pool
     const connection = await pool.connect();
 
-    const t_id = req.query.t_id
+    const t_id = req.query.t_id;
 
     // Get the student_id from the query string
 
     // Select all data from the student_form table where student_id matches
     const result = await connection.query(
-      `SELECT s_id, student_name, student_id, activity_name, activity_year, activity_hours, t_id, activity_date, activity_position FROM student_form WHERE t_id = ${t_id} `
+      `SELECT s_id, student_name, student_id, activity_name, activity_year, activity_hours, t_id, activity_date, activity_position, last_date, fac_name, maj_name FROM student_form WHERE t_id = ${t_id} `
     );
 
     // Close the database connection
@@ -380,7 +397,6 @@ app.get("/student_form_display", async (req, res) => {
     res.status(500).send("Error retrieving data");
   }
 });
-
 
 app.get("/activity_pictures/:s_id", async (req, res) => {
   const s_id = parseInt(req.params.s_id);
@@ -396,10 +412,7 @@ app.get("/activity_pictures/:s_id", async (req, res) => {
     const pool = await sql.connect(config);
 
     // select the latest image data for the given s_id from the database
-    const result = await pool
-      .request()
-      .input("s_id", sql.Int, s_id)
-      .query(`
+    const result = await pool.request().input("s_id", sql.Int, s_id).query(`
         SELECT picture_data
         FROM activity_pictures
         WHERE s_id = @s_id
@@ -409,7 +422,9 @@ app.get("/activity_pictures/:s_id", async (req, res) => {
     // check that the query returned a result
     if (result.recordset.length > 0) {
       const images = result.recordset.map((record) => {
-        return record.picture_data ? record.picture_data.toString('base64') : null;
+        return record.picture_data
+          ? record.picture_data.toString("base64")
+          : null;
       });
       res.send(images);
     } else {
@@ -464,6 +479,3 @@ app.delete("/student_form/:s_id", async (req, res) => {
     res.status(500).send("Error deleting data");
   }
 });
-
-
-

@@ -17,16 +17,16 @@ import Swal from "sweetalert2";
 import { Search, ArrowBack } from "@mui/icons-material";
 import { TextField, InputAdornment, IconButton } from "@mui/material";
 
-const Teacher_Dashboard = ({s_id}) => {
+const Teacher_Dashboard = ({ s_id }) => {
   const [teacherForm, setTeacherForm] = useState([]);
   const [studentForm, setStudentForm] = useState([]);
   const [modalType, setModalType] = useState(null);
   const [activityPictures, setActivityPictures] = useState([]);
 
-
   const [showModal, setShowModal] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [studentImage, setStudentImage] = useState("");
 
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -78,8 +78,6 @@ const Teacher_Dashboard = ({s_id}) => {
     });
   };
 
-  // const handleShowModal = async (activity) => {
-  //   setSelectedActivity(activity);
   //   setModalType("activity");
   //   setShowModal(true);
   //   try {
@@ -97,7 +95,6 @@ const Teacher_Dashboard = ({s_id}) => {
   //   setSelectedStudent(student);
   //   setModalType("student");
   // };
-
 
   // useEffect(() => {
   //   async function fetchActivityPictures() {
@@ -152,24 +149,32 @@ const Teacher_Dashboard = ({s_id}) => {
   };
 
   const handleViewStudentInfo = async (student) => {
-    setSelectedStudent(student);
     setModalType("student");
   
     try {
-      const response = await fetch(
-        `http://localhost:3333/activity_pictures/${student.s_id}`
-      );
+      const [imageResponse, activityResponse] = await Promise.all([
+        fetch(`http://appz.vu.ac.th:8989/VuAPIVer1/select_student_image.php?stuid=${student.student_id}`),
+        fetch(`http://localhost:3333/activity_pictures/${student.s_id}`)
+      ]);
   
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch activity pictures: ${response.status}`
-        );
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to fetch student image: ${imageResponse.status}`);
       }
   
-      const data = await response.json();
+      const { Per_Picture } = await imageResponse.json();
+      const dataUri = `data:image/png;base64,${Per_Picture}`;
   
-      if (data.length > 0) {
-        const pictureArray = data.map(
+      setSelectedStudent(student);
+      setStudentImage(dataUri);
+  
+      if (!activityResponse.ok) {
+        throw new Error(`Failed to fetch activity pictures: ${activityResponse.status}`);
+      }
+  
+      const activityData = await activityResponse.json();
+  
+      if (activityData.length > 0) {
+        const pictureArray = activityData.map(
           (pictureData) => `data:image/png;base64,${pictureData}`
         );
         setActivityPictures(pictureArray);
@@ -178,9 +183,9 @@ const Teacher_Dashboard = ({s_id}) => {
       }
     } catch (error) {
       console.error(error);
+      setStudentImage(null);
       setActivityPictures([]);
     }
-    console.log(activityPictures)
   };
   
   return (
@@ -327,7 +332,7 @@ const Teacher_Dashboard = ({s_id}) => {
               <td>
                 <Button
                   variant="warning"
-                  onClick={() => alert(teacherForm)}
+                  onClick={() => alert(teacherForm.activity_name)}
                   style={{ padding: 1, paddingInline: 10, fontSize: 20 }}
                 >
                   แก้ไข
@@ -368,6 +373,7 @@ const Teacher_Dashboard = ({s_id}) => {
                 id="outlined-basic"
                 label="รหัส/ชื่อนักศึกษา"
                 variant="outlined"
+                size="small"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 InputProps={{
@@ -437,7 +443,12 @@ const Teacher_Dashboard = ({s_id}) => {
           size="xl"
         >
           <Modal.Header style={{ borderBottom: "none" }}>
-            <IconButton onClick={() => setModalType("activity")}>
+            <IconButton onClick={() => {
+              setStudentImage(null);
+              setActivityPictures([]);
+              setModalType("activity");
+              setSelectedStudent(null);
+            } }>
               <ArrowBack />
             </IconButton>
           </Modal.Header>
@@ -455,11 +466,14 @@ const Teacher_Dashboard = ({s_id}) => {
                 alignItems: "center",
               }}
             >
-              <Image
-                src="https://cdn-icons-png.flaticon.com/512/1077/1077114.png"
-                rounded
-                style={{ width: 200, backgroundColor: "#D4E1E3" }}
-              />
+              {studentImage && (
+                <Image
+                  id="student-image"
+                  src={studentImage}
+                  rounded
+                  style={{ width: 200, backgroundColor: "#D4E1E3" }}
+                />
+              )}
 
               <div
                 style={{
@@ -477,6 +491,14 @@ const Teacher_Dashboard = ({s_id}) => {
                   {" "}
                   <strong>ชื่อนักศึกษา:</strong> {selectedStudent.student_name}
                 </p>
+                <p>
+                  {" "}
+                  <strong>คณะ:</strong> {selectedStudent.fac_name}
+                </p>
+                <p>
+                  {" "}
+                  <strong>สาขา:</strong> {selectedStudent.maj_name}
+                </p>
               </div>
             </div>
           </Modal.Body>
@@ -488,7 +510,7 @@ const Teacher_Dashboard = ({s_id}) => {
             ข้อมูลการเข้าร่วมกิจกรรม
           </Modal.Title>
           <Modal.Body>
-            <div >
+            <div>
               <p>
                 <strong>ชื่อกิจกรรม: </strong>
                 {selectedStudent.activity_name}
@@ -529,13 +551,50 @@ const Teacher_Dashboard = ({s_id}) => {
                 {selectedStudent.activity_hours} ชั่วโมง
               </p>
               <strong>รูปภาพกิจกรรมกิจกรรม</strong>
-              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: 20 }}>
-              {activityPictures.map((picture, index) => (
-                <img key={index} src={picture} alt="activity picture"  style={{width: 200, height: 200, borderRadius: 10}} />
-              ))}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "20px",
+                  flexWrap: "wrap",
+                  marginTop: 20,
+                }}
+              >
+                {activityPictures.map((picture, index) => (
+                  <img
+                    key={index}
+                    src={picture}
+                    alt="activity picture"
+                    style={{ width: 200, height: 200, borderRadius: 10 }}
+                  />
+                ))}
               </div>
             </div>
           </Modal.Body>
+          <Modal.Footer
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <Button
+                variant="success"
+                style={{ fontSize: 20, marginRight: 20 }}
+              >
+                ผ่าน
+              </Button>
+              <Button
+                variant="warning"
+                style={{ fontSize: 20, marginRight: 20 }}
+              >
+                แก้ไข
+              </Button>
+              <Button variant="danger" style={{ fontSize: 20 }}>
+                ไม่ผ่าน
+              </Button>
+            </div>
+          </Modal.Footer>
         </Modal>
       )}
     </div>

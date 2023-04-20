@@ -49,6 +49,8 @@ const Student_Form = () => {
 
   const [user_id] = useState(plaintext.user_id);
   const [fullname] = useState(plaintext.fullname);
+  const [fac_name] = useState(plaintext.fac_name);
+  const [maj_name] = useState(plaintext.maj_name);
   const navigate = useNavigate();
 
   const handleFormSubmit = () => {
@@ -67,6 +69,9 @@ const Student_Form = () => {
       formData.append("activity_document", activityDocument);
       formData.append("student_id", user_id);
       formData.append("student_name", fullname);
+      formData.append("fac_name", fac_name);
+      formData.append("maj_name", maj_name);
+
 
       // Append each file to the formData
       activityPictures.forEach((file) => {
@@ -139,6 +144,7 @@ const Student_Form = () => {
       // const formattedDate = format(activityDate, "yyyy-MM-dd");
       formData.append("activity_name", selectedActivity.activity_name);
       formData.append("activity_date", selectedActivity.activity_date);
+      formData.append("last_date", selectedActivity.last_date);
       formData.append("t_id", selectedActivity.t_id);
       formData.append("activity_year", activityYear);
       formData.append("activity_hours", activityHours);
@@ -146,6 +152,8 @@ const Student_Form = () => {
       formData.append("activity_position", activityPosition);
       formData.append("student_id", user_id);
       formData.append("student_name", fullname);
+      formData.append("fac_name", fac_name);
+      formData.append("maj_name", maj_name);
       // Append each file to the formData
       activityPictures.forEach((file) => {
         formData.append("activity_pictures", file);

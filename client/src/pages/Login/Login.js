@@ -22,7 +22,6 @@ export default function Login() {
 
   const handleLogin = (event) => {
     event.preventDefault(); //protect redirect
-    console.warn(username, password);
 
     var myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/json");
@@ -62,6 +61,8 @@ export default function Login() {
             JSON.stringify({
               fullname: result.fullname,
               user_id: result.user_id,
+              fac_name: result.fac_name,
+              maj_name: result.maj_name
             }),
             "secret key 123"
           ).toString();

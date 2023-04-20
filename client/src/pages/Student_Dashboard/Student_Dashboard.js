@@ -39,6 +39,8 @@ const Student_Dashboard = ({ s_id }) => {
   const plaintext = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
   const [user_id] = useState(plaintext.user_id);
   const [fullname] = useState(plaintext.fullname);
+  const [fac_name] = useState(plaintext.fac_name);
+  const [maj_name] = useState(plaintext.maj_name);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -92,6 +94,7 @@ const Student_Dashboard = ({ s_id }) => {
       console.error(error);
     }
   }
+
   
 
   async function handleClickPicture(s_id) {
