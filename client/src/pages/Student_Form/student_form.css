@@ -39,6 +39,10 @@ tr {
   text-align: center;
 }
 
+.ant-picker-time-panel-column {
+  font-size: 18px;
+}
+
 @font-face {
   font-family: 'TH Sarabun';
   src: url('../../assets/THSarabunNew.ttf') format('truetype');

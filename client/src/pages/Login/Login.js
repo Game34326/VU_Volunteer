@@ -40,7 +40,7 @@ export default function Login() {
     };
 
     fetch(
-      "http://appz.vu.ac.th:8989/VuAPIVer1/select_login.php",
+      `http://appz.vu.ac.th:8989/VuAPIVer1/select_login.php`,
       requestOptions
     )
       .then((response) => response.json())
@@ -62,32 +62,59 @@ export default function Login() {
               fullname: result.fullname,
               user_id: result.user_id,
               fac_name: result.fac_name,
-              maj_name: result.maj_name
+              maj_name: result.maj_name,
             }),
             "secret key 123"
           ).toString();
           const url = `/student_dashboard?q=${encodeURIComponent(ciphertext)}`;
           navigation(url);
         } else if (result.status === "ok" && result.user_type === 2) {
-          Swal.fire({
-            icon: "success",
-            title: "เข้าสู่ระบบสำเร็จ",
-            showConfirmButton: false,
-            timer: 1500,
-            customClass: {
-              title: "thai-font",
-            },
-          });
-          localStorage.setItem("token", result.pass);
-          const ciphertext = CryptoJS.AES.encrypt(
-            JSON.stringify({
-              fullname: result.fullname,
-              user_id: result.user_id,
-            }),
-            "secret key 123"
-          ).toString();
-          const url = `/teacher_dashboard?q=${encodeURIComponent(ciphertext)}`;
-          navigation(url);
+          if (result.user_id === "2545001") {
+            Swal.fire({
+              icon: "success",
+              title: "เข้าสู่ระบบสำเร็จ",
+              showConfirmButton: false,
+              timer: 1500,
+              customClass: {
+                title: "thai-font",
+              },
+            });
+            localStorage.setItem("token", result.pass);
+            const ciphertext = CryptoJS.AES.encrypt(
+              JSON.stringify({
+                fullname: result.fullname,
+                user_id: result.user_id,
+              }),
+              "secret key 123"
+            ).toString();
+            const url = `/approver_dashboard?q=${encodeURIComponent(
+              ciphertext
+            )}`;
+            navigation(url);
+          } else {
+            Swal.fire({
+              icon: "success",
+              title: "เข้าสู่ระบบสำเร็จ",
+              showConfirmButton: false,
+              timer: 1500,
+              customClass: {
+                title: "thai-font",
+              },
+            });
+            localStorage.setItem("token", result.pass);
+            const ciphertext = CryptoJS.AES.encrypt(
+              JSON.stringify({
+                fullname: result.fullname,
+                user_id: result.user_id,
+                department: result.department
+              }),
+              "secret key 123"
+            ).toString();
+            const url = `/teacher_dashboard?q=${encodeURIComponent(
+              ciphertext
+            )}`;
+            navigation(url);
+          }
         } else {
           Swal.fire({
             icon: "error",
@@ -116,10 +143,16 @@ export default function Login() {
                     alt="VU Logo"
                   />
                 </div>
-                <h2 className="fw-bold mb-2 text-center thai-font" style={{fontSize: 40}} >
+                <h2
+                  className="fw-bold mb-2 text-center thai-font"
+                  style={{ fontSize: 40 }}
+                >
                   ระบบบันทึกจิตอาสา
                 </h2>
-                <h3 className=" mb-2 text-center thai-font text-color" style={{fontSize: 36, fontWeight: "bold"}} >
+                <h3
+                  className=" mb-2 text-center thai-font text-color"
+                  style={{ fontSize: 36, fontWeight: "bold" }}
+                >
                   VU Volunteer
                 </h3>
                 <div className="inputCon">
@@ -151,7 +184,13 @@ export default function Login() {
                     variant="contained"
                     startIcon={<LockOpenRoundedIcon />}
                     className="loginBtn thai-font"
-                    style={{ marginTop: 20, fontFamily: "'TH Sarabun', sans-serif", fontSize: 24, alignItems: "center", justifyContent: "center" }}
+                    style={{
+                      marginTop: 20,
+                      fontFamily: "'TH Sarabun', sans-serif",
+                      fontSize: 24,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
                     onClick={handleLogin}
                   >
                     เข้าสู่ระบบ

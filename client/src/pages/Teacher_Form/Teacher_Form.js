@@ -9,6 +9,7 @@ import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import th from "date-fns/locale/th";
 import format from "date-fns/format";
+import Loader from "../../components/Loader";
 registerLocale("th", th);
 
 const Teacher_Form = () => {
@@ -17,9 +18,12 @@ const Teacher_Form = () => {
   const [activityDate, setActivityDate] = useState("");
   const [lastDate, setLastDate] = useState("");
   const [activityPlace, setActivityPlace] = useState("");
-  const [activityPicture, setActivityPicture] = useState(null);
+  const [activityPictures, setActivityPictures] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState("");
+  const [activityStyle, setActivityStyle] = useState("");
   const [formattedDate, setFormattedDate] = useState("");
   const [formattedLastDate, setFormattedLastDate] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [errors, setErrors] = useState({});
 
@@ -30,6 +34,7 @@ const Teacher_Form = () => {
   const plaintext = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
   const [user_id] = useState(plaintext.user_id);
   const [fullname] = useState(plaintext.fullname);
+  const [department] = useState(plaintext.department);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,8 +45,11 @@ const Teacher_Form = () => {
     }
   }, []);
 
-  const handleDeletePicture = (index) => {
-    setActivityPicture(null);
+  const handleDeletePicture = (event, index) => {
+    event.preventDefault();
+    const newImages = [...activityPictures];
+    newImages.splice(index, 1);
+    setActivityPictures(newImages);
   };
 
   const validateForm = () => {
@@ -61,6 +69,12 @@ const Teacher_Form = () => {
     if (!activityPlace) {
       errors.activityPlace = "กรุณากรอกสถานที่ที่จัดกิจกรรม";
     }
+    if (!selectedDepartment) {
+      errors.selectedDepartment = "กรุณาเลือกคณะ ศูนย์  สำนัก";
+    }
+    if (!activityStyle) {
+      errors.activityStyle = "กรุณากรอกลักษณะกิจกรรม";
+    }
     return errors;
   };
 
@@ -68,6 +82,7 @@ const Teacher_Form = () => {
     const errors = validateForm();
     setErrors(errors);
     if (Object.keys(errors).length === 0) {
+      setLoading(true);
       const formData = new FormData();
       const formattedDate = format(activityDate, "yyyy-MM-dd");
       const formattedLastDate = format(lastDate, "yyyy-MM-dd");
@@ -77,9 +92,18 @@ const Teacher_Form = () => {
       formData.append("last_date", formattedLastDate);
       formData.append("teacher_id", user_id);
       formData.append("teacher_name", fullname);
-      formData.append("activity_picture", activityPicture);
       formData.append("activity_place", activityPlace);
+      formData.append("activity_style", activityStyle);
 
+
+      activityPictures.forEach((file) => {
+        formData.append("activity_pictures", file);
+      });
+
+      const [depId, depName] = selectedDepartment.split(",");
+      const departmentData = { dep_id: depId, dep_name: depName };
+      const departmentJSON = JSON.stringify(departmentData);
+      formData.append("department", departmentJSON);
 
       fetch("http://localhost:3333/teacher_form", {
         method: "POST",
@@ -87,6 +111,7 @@ const Teacher_Form = () => {
       })
         .then((response) => {
           if (response.ok) {
+            setLoading(false);
             console.log("Form submitted successfully!");
             Swal.fire({
               icon: "success",
@@ -99,6 +124,7 @@ const Teacher_Form = () => {
             });
             navigate(-1);
           } else {
+            setLoading(false);
             console.error("Error submitting form");
             Swal.fire({
               icon: "error",
@@ -107,6 +133,7 @@ const Teacher_Form = () => {
           }
         })
         .catch((error) => {
+          setLoading(false);
           console.error(error);
         });
     } else {
@@ -162,8 +189,11 @@ const Teacher_Form = () => {
                 style={{ width: 40, height: 40 }}
                 className="d-inline-block align-top"
               />{" "}
-              <span style={{ fontWeight: "bold", color: "black" }}>
-                VU Volunteer
+              <span
+                className="thai-font"
+                style={{ fontWeight: "bold", color: "black" }}
+              >
+                VU Volunteer Teacher
               </span>
             </Navbar.Brand>
           </Container>
@@ -172,26 +202,20 @@ const Teacher_Form = () => {
       <h2
         style={{
           textAlign: "center",
-          marginTop: 10,
-          fontSize: 40,
+          marginTop: 80,
+          fontSize: 30,
           fontWeight: "bold",
         }}
         className="thai-font"
       >
         เพิ่มข้อมูลกิจกรรมที่จัดขึ้นโดยคณะวิชา ศูนย์ สำนักของมหาวิทยาลัย
       </h2>
-      {/* <p className="nameText thai-font" style={{ fontSize: 25 }}>
-        รหัสบุคลากร:{" "}
-        <span style={{ color: "green", fontWeight: "bold" }}>{user_id}</span>
-      </p>
-      <p className="nameText thai-font" style={{ fontSize: 25 }}>
-        ชื่อ-นามสกุล:{" "}
-        <span style={{ color: "green", fontWeight: "bold" }}>{fullname}</span>
-      </p> */}
       <div className="form-wrapper">
         <Form className="form_container thai-font">
           <Form.Group controlId="activityName" className="form-group">
-            <Form.Label>ชื่อกิจกรรม</Form.Label>
+            <Form.Label>
+              ชื่อกิจกรรม <span style={{ color: "red" }}>*</span>{" "}
+            </Form.Label>
             <Form.Control
               type="text"
               value={activityName}
@@ -203,7 +227,9 @@ const Teacher_Form = () => {
           </Form.Group>
 
           <Form.Group controlId="activity" className="form-group">
-            <Form.Label>ปีการศึกษา/ภาคเรียน</Form.Label>
+            <Form.Label>
+              ปีการศึกษา/ภาคเรียน <span style={{ color: "red" }}>*</span>
+            </Form.Label>
             <Form.Control
               as="select"
               value={activityYear}
@@ -221,9 +247,33 @@ const Teacher_Form = () => {
             )}
           </Form.Group>
 
+          <Form.Group controlId="department" className="form-group">
+            <Form.Label>
+              กิจกรรมจัดขึ้นโดย <span style={{ color: "red" }}>*</span>
+            </Form.Label>
+            <Form.Control
+              as="select"
+              value={selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value)}
+            >
+              <option value="">-- เลือก --</option>
+              {department.map((dep) => (
+                <option
+                  value={`${dep.Fac_ID},${dep.Fac_NameTH}`}
+                  key={dep.Fac_ID}
+                >
+                  {dep.Fac_NameTH}
+                </option>
+              ))}
+            </Form.Control>
+            {errors.selectedDepartment && (
+              <div className="text-danger">{errors.selectedDepartment}</div>
+            )}
+          </Form.Group>
+
           <Form.Group controlId="activityDate" className="form-group">
             <Form.Label>
-              วันที่จัดกิจกรรม:{" "}
+              วันที่จัดกิจกรรม: <span style={{ color: "red" }}>*</span>{" "}
               <span style={{ color: "green", fontWeight: "bold" }}>
                 {formattedDate}
               </span>
@@ -245,7 +295,7 @@ const Teacher_Form = () => {
 
           <Form.Group controlId="activityLastDate" className="form-group">
             <Form.Label>
-              วันสิ้นสุดกิจกรรม:{" "}
+              วันสิ้นสุดกิจกรรม: <span style={{ color: "red" }}>*</span>{" "}
               <span style={{ color: "green", fontWeight: "bold" }}>
                 {formattedLastDate}
               </span>
@@ -266,7 +316,9 @@ const Teacher_Form = () => {
           </Form.Group>
 
           <Form.Group controlId="activityPlace" className="form-group">
-            <Form.Label>สถานที่จัดกิจกรรม</Form.Label>
+            <Form.Label>
+              สถานที่จัดกิจกรรม <span style={{ color: "red" }}>*</span>
+            </Form.Label>
             <Form.Control
               type="text"
               value={activityPlace}
@@ -277,21 +329,46 @@ const Teacher_Form = () => {
             )}
           </Form.Group>
 
+          <Form.Group controlId="activityStyle" className="form-group">
+            <Form.Label>
+              ลักษณะกิจกรรม <span style={{ color: "red" }}>*</span>
+            </Form.Label>
+            <Form.Control
+              type="text"
+              value={activityStyle}
+              onChange={(e) => setActivityStyle(e.target.value)}
+            />
+            {errors.activityStyle && (
+              <div className="text-danger">{errors.activityStyle}</div>
+            )}
+          </Form.Group>
+
+
           <Form.Group controlId="activityPicture" className="form-group">
             <Form.Label>รูปภาพกิจกรรม</Form.Label>
+            <p style={{fontSize: 18, color: 'gray'}} >หมายเหตุ: ภาพบรรยากาศของกิจกรรม</p>
             <Form.Control
               type="file"
               accept="image/*"
-              name="activity_picture"
-              onChange={(e) => setActivityPicture(e.target.files[0])}
+              multiple
+              name="activity_pictures" // add this line
+              onChange={(e) =>
+                setActivityPictures([...activityPictures, ...e.target.files])
+              }
             />
 
             <div>
-              {activityPicture && (
-                <div style={{ position: "relative", display: "inline-block" }}>
+              {activityPictures.map((file, index) => (
+                <div
+                  key={index}
+                  style={{
+                    position: "relative",
+                    display: "inline-block",
+                  }}
+                >
                   <img
-                    src={URL.createObjectURL(activityPicture)}
-                    alt={activityPicture.name}
+                    src={URL.createObjectURL(file)}
+                    alt={file.name}
                     style={{
                       width: 120,
                       height: 120,
@@ -300,7 +377,7 @@ const Teacher_Form = () => {
                     }}
                   />
                   <button
-                    onClick={() => handleDeletePicture()}
+                    onClick={(event) => handleDeletePicture(event, index)}
                     style={{
                       position: "absolute",
                       marginTop: 10,
@@ -317,7 +394,7 @@ const Teacher_Form = () => {
                     X
                   </button>
                 </div>
-              )}
+              ))}
             </div>
           </Form.Group>
 
@@ -347,6 +424,11 @@ const Teacher_Form = () => {
           </div>
         </Form>
       </div>
+      {loading && (
+        <div>
+          <Loader className="thai-font" />
+        </div>
+      )}
     </div>
   );
 };

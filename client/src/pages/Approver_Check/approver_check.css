@@ -1,0 +1,69 @@
+.form_container{
+    width: 50%;
+    margin-top: 10px;
+}
+
+.nameText{
+  text-align: center;
+  margin-top: 20px;
+}
+
+.form-group {
+  padding: 10px;
+}
+
+.table-responsive {
+  justify-content: center;
+  width: 100%;
+  align-items: center;
+  margin-top: 10px;
+} 
+
+tr {
+  justify-content: center;
+  text-align: center;
+}
+
+@font-face {
+  font-family: 'TH Sarabun';
+  src: url('../../assets/THSarabunNew.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.thai-font{
+  font-family: 'TH Sarabun', sans-serif;
+  font-size: 22px;
+}
+
+.form-label {
+  font-weight: bold;
+}
+
+.form-control{
+  font-size: 20px;
+}
+
+.date-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.calendar-icon {
+  margin-right: 10px;
+}
+
+.activity-card {
+  display: inline-block;
+  margin-right: 20px;
+  margin-bottom: 20px;
+  width: 300px;
+  height: 500px; /* set a fixed height for all cards */
+}
+
+.card-img-top {
+  height: 200px;
+  object-fit: cover;
+}

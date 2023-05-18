@@ -33,6 +33,14 @@
     padding: 10px;
   }
 
+  .form-label {
+    font-size: 22px;
+  }
+
+  .text-danger {
+    font-size: 22px;
+  }
+
   @font-face {
     font-family: 'TH Sarabun';
     src: url('../../assets/THSarabunNew.ttf') format('truetype');
@@ -42,7 +50,7 @@
   
   .thai-font{
     font-family: 'TH Sarabun', sans-serif;
-    font-size: 22px;
+    font-size: 20px;
   }
   
   

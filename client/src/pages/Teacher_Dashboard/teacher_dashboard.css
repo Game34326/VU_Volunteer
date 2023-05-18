@@ -1,36 +1,119 @@
 @media only screen and (max-width: 768px) {
-    .navbar-parent-container {
-        width: 100%;
-        padding: 0;
-        margin: 0;
-      }
-      .form_btn {
-        width: 50%;
-      }
+  .navbar-parent-container {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  .form_btn {
+    width: 50%;
   }
 
-  .logout-button:hover {
-    color: white !important;
+  thead {
+    font-size: 16;
   }
 
-  @font-face {
-    font-family: 'TH Sarabun';
-    src: url('../../assets/THSarabunNew.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
+  tbody {
+    font-size: 16;
   }
 
-  .thai-font{
-    font-family: 'TH Sarabun', sans-serif;
-    font-size: 25px;
+  .thai-font {
+    font-family: "TH Sarabun", sans-serif;
+    font-size: 16px;
   }
 
-  .searchbox{
-    border-radius: 10px;
+  .table-header {
+    white-space: nowrap;
   }
 
-  /* input::placeholder{
+  .table-header {
+    overflow-x: auto;
+    width: 390px; /* adjust this value to fit your table */
+  }
+
+  .header-text {
+    text-align: center;
+    margin-top: 10px;
+    font-weight: bold;
+  }
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 30px;
+}
+
+
+.logout-button:hover {
+  color: white !important;
+}
+
+.nav-text {
+  background-color: #efc001;
+  height: 60px;
+  width: 100vw;
+}
+
+.navbar-parent-container {
+  position: relative;
+}
+
+.navbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+#date-popup > div {
+  position: relative !important;
+}
+
+.header-text {
+  text-align: center;
+  margin-top: 80px;
+  font-weight: bold;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+@font-face {
+  font-family: "TH Sarabun";
+  src: url("../../assets/THSarabunNew.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.thai-font {
+  font-family: "TH Sarabun", sans-serif;
+  font-size: 25px;
+}
+
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: white;
+  font-size: 20px;
+}
+
+tbody {
+  position: relative;
+  font-size: 20px;
+}
+
+.searchbox {
+  border-radius: 10px;
+}
+
+/* input::placeholder{
     color: white;
   } */
-
-  
