@@ -9,10 +9,12 @@ import {
   ListGroup,
   Row,
   Modal,
+  Col,
   InputGroup,
 } from "react-bootstrap";
 import Swal from "sweetalert2";
 import { Menu, HighlightOffRounded } from "@mui/icons-material";
+import { Search, ArrowBack } from "@mui/icons-material";
 import "./activity_inside.css";
 import SwiperCore, { Pagination, Navigation } from "swiper";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -22,27 +24,25 @@ SwiperCore.use([Pagination, Navigation]);
 
 const Activity_Inside = () => {
   const [activityYear, setActivityYear] = useState("");
+  const [countInside, setCountInside] = useState({});
   const [teacherForm, setTeacherForm] = useState([]);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [editValue, setEditValue] = useState("");
   const [showEditModal, setShowEditModal] = useState(false);
   const [activityPictures, setActivityPictures] = useState([]);
-
+  const [facultyList, setFacultyList] = useState([]);
+  const [institution, setInstitution] = useState([]);
+  const [searchQuery, setSearchQuery] = useState({
+    activityYear: "",
+    department: "",
+  });
+  const [isActive, setIsActive] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    // Make a GET request to retrieve the data from the server
-    fetch(
-      `http://localhost:3333/teacher_form_check?activity_year=${activityYear}`
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        setTeacherForm(data);
-        console.log(data);
-      })
-      .catch((error) => console.error(error));
-  }, [activityYear]);
+  const queryParams = new URLSearchParams(location.search);
+  const ciphertext = queryParams.get("q");
+  const hostName = '192.168.0.119:3333'
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -52,8 +52,45 @@ const Activity_Inside = () => {
     }
   }, []);
 
-  const goback = () => {
-    navigate(-1);
+  useEffect(() => {
+    fetch(`http://${hostName}/activity_counts`)
+      .then((response) => response.json())
+      .then((data) => {
+        setCountInside(data);
+        console.log(data);
+      });
+  }, []);
+
+  useEffect(() => {
+    fetch(
+      `http://appz.vu.ac.th:8989/VuAPIVer1/select_faculty_major.php?factype=1`
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        setFacultyList(data);
+      })
+      .catch((error) => console.error(error));
+  }, []);
+
+  useEffect(() => {
+    fetch(
+      `http://appz.vu.ac.th:8989/VuAPIVer1/select_faculty_major.php?factype=0`
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        setInstitution(data);
+      })
+      .catch((error) => console.error(error));
+  }, []);
+
+  const goBackToFirstPage = () => {
+    if (ciphertext) {
+      const encodedCiphertext = encodeURIComponent(ciphertext);
+      navigate(`/approver_dashboard?q=${encodedCiphertext}`);
+    } else {
+      // Handle the case when the ciphertext is null or not available
+      console.error("Invalid ciphertext");
+    }
   };
 
   async function handleButtonClick(status, t_id) {
@@ -80,7 +117,7 @@ const Activity_Inside = () => {
           check_activity: status,
         };
 
-        fetch("http://localhost:3333/update-teacher-form", {
+        fetch( `http://${hostName}/update-teacher-form`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ t_id, status }),
@@ -125,7 +162,7 @@ const Activity_Inside = () => {
       check_activity: editValue,
     };
 
-    fetch("http://localhost:3333/update-teacher-form", {
+    fetch( `http://${hostName}/update-teacher-form`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -168,6 +205,76 @@ const Activity_Inside = () => {
     setSelectedActivity(activity);
   };
 
+  function toggleSidebar() {
+    const sidebar = document.querySelector(".sidebar");
+    const icon = document.querySelector(".navbar-toggler-icon");
+
+    sidebar.classList.toggle("active");
+    icon.classList.toggle("open");
+  }
+
+  const handleSearchChange = (e) => {
+    const { name, value } = e.target;
+    let parsedValue = value;
+
+    // Check if the value is a JSON string and parse it if so
+    try {
+      parsedValue = JSON.parse(value);
+    } catch (error) {
+      // Handle parsing error if necessary
+    }
+
+    setSearchQuery({
+      ...searchQuery,
+      [name]: parsedValue,
+    });
+  };
+
+  const handleActiveClick = () => {
+    setIsActive(!isActive);
+  };
+
+  const handleSearchSubmit = () => {
+    // Construct the query parameters based on the selected values
+    let queryParams = "";
+    if (searchQuery.activityYear) {
+      queryParams += `activity_year=${searchQuery.activityYear}&`;
+    }
+    if (searchQuery.department) {
+      queryParams += `department=${searchQuery.department}&`;
+    }
+    if (searchQuery.institution) {
+      queryParams += `institution=${searchQuery.institution}&`;
+    }
+    if (!isActive) {
+      queryParams += `waitCheck=true&`;
+    } else {
+      queryParams += `alreadyCheck=true&`;
+    }
+
+    // Remove trailing '&' character if any
+    if (queryParams.endsWith("&")) {
+      queryParams = queryParams.slice(0, -1);
+    }
+
+    // Construct the URL with the query parameters
+    const url = `http://${hostName}/teacher_form_check/?${queryParams}`;
+
+    fetch(url)
+      .then((response) => response.json())
+      .then((data) => {
+        // Process the search results
+        if (data.length === 0) {
+          setTeacherForm(0); // Set teacherForm to 0 to indicate no data available
+        } else {
+          setTeacherForm(data);
+        }
+        console.log(data);
+      })
+      .catch((error) => console.error(error));
+
+    console.log(searchQuery);
+  };
 
   return (
     <>
@@ -186,6 +293,13 @@ const Activity_Inside = () => {
           >
             <Container className="navbar_container" fluid>
               <Navbar.Brand>
+                <button
+                  className="navbar-toggler"
+                  type="button"
+                  onClick={toggleSidebar}
+                >
+                  <span className="navbar-toggler-icon"></span>
+                </button>
                 <img
                   alt=""
                   src="https://upload.wikimedia.org/wikipedia/th/c/c4/%E0%B8%A1%E0%B8%AB%E0%B8%B2%E0%B8%A7%E0%B8%B4%E0%B8%97%E0%B8%A2%E0%B8%B2%E0%B8%A5%E0%B8%B1%E0%B8%A2%E0%B8%A7%E0%B8%87%E0%B8%A9%E0%B9%8C%E0%B8%8A%E0%B8%A7%E0%B8%A5%E0%B8%B4%E0%B8%95%E0%B8%81%E0%B8%B8%E0%B8%A5.png"
@@ -203,42 +317,90 @@ const Activity_Inside = () => {
           </Navbar>
         </div>
 
-        <div className="sidebar">
-          <p
-            className="thai-font"
-            style={{
-              fontSize: 24,
-              fontWeight: "bold",
-              borderBottom: "1px solid black",
-            }}
-          >
-            กิจกรรมจัดขึ้นโดยคณะ ศูนย์ สำนักของมหาวิทยาลัย
-          </p>
-          <ul className="list-unstyled thai-font" style={{ fontSize: 22 }}>
-            <li
-              className={
-                location.pathname === "/activity_inside" ? "active" : ""
-              }
-            >
-              <Link to="/activity_inside">อนุมัติกิจกรรม</Link>
-            </li>
-            <li
-              className={
-                location.pathname === "/check_activity_inside" ? "active" : ""
-              }
-            >
-              <Link to="/check_activity_inside">ตรวจสอบกิจกรรมนักศึกษา</Link>
-            </li>
-            <li
-              style={{ cursor: "pointer" }}
-              onClick={() => goback()}
-            >
-              <Link to={() => goback()}>หน้าแรก</Link>
-            </li>
-          </ul>
+        <div className="container">
+          <div className="row">
+            <div className="col-md-4">
+              <div className="sidebar">
+                {" "}
+                <p
+                  className="thai-font"
+                  style={{
+                    fontSize: 24,
+                    fontWeight: "bold",
+                    borderBottom: "1px solid black",
+                  }}
+                >
+                  กิจกรรมจัดขึ้นโดยคณะ ศูนย์ สำนักของมหาวิทยาลัย
+                </p>
+                <ul
+                  className="list-unstyled thai-font"
+                  style={{ fontSize: 22 }}
+                >
+                  <li
+                    className={
+                      location.pathname === "/activity_inside" ? "active" : ""
+                    }
+                  >
+                    <Link
+                      to={`/activity_inside?q=${encodeURIComponent(
+                        ciphertext
+                      )}`}
+                    >
+                      อนุมัติกิจกรรม{" "}
+                      {countInside.teacherFormNumber !== 0 && (
+                        <span style={{ color: "red", fontWeight: "bold" }}>
+                          ({countInside.teacherFormNumber})
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                  <li
+                    className={
+                      location.pathname === "/check_activity_inside"
+                        ? "active"
+                        : ""
+                    }
+                  >
+                    <Link
+                      to={`/check_activity_inside?q=${encodeURIComponent(
+                        ciphertext
+                      )}`}
+                    >
+                      ตรวจสอบกิจกรรมนักศึกษา{" "}
+                      {countInside.insideNumber !== 0 && (
+                        <span style={{ color: "red", fontWeight: "bold" }}>
+                          ({countInside.insideNumber})
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                  <li
+                    style={{ cursor: "pointer" }}
+                    onClick={() => goBackToFirstPage(ciphertext)}
+                  >
+                    <Link to={() => goBackToFirstPage(ciphertext)}>
+                      หน้าแรก
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="content">
+        <h1
+          style={{
+            textAlign: "center",
+            marginTop: 80,
+            fontSize: 35,
+            fontWeight: "bold",
+          }}
+          className="thai-font approve-container"
+        >
+          อนุมัติกิจกรรม
+        </h1>
+
+        <div className="content thai-font approve-container">
           <div
             style={{
               display: "flex",
@@ -246,22 +408,118 @@ const Activity_Inside = () => {
               alignItems: "center",
             }}
           >
-            <Form className="form_container thai-font">
-              <Form.Group controlId="activityYear" className="form-group">
-                <Form.Label>ปีการศึกษา/ภาคเรียน</Form.Label>
-                <Form.Control
-                  as="select"
-                  onChange={(e) => setActivityYear(e.target.value)}
+            <div
+              style={{
+                width: "650px",
+                padding: "20px",
+                border: "1px solid #ccc",
+                borderRadius: 25,
+                marginTop: 20,
+              }}
+            >
+              <Form>
+                <Row className="mb-3">
+                  <Col xs={12} sm={6} md={4}>
+                    <Form.Label>ปีการศึกษา/ภาคเรียน</Form.Label>
+                    <Form.Control
+                      as="select"
+                      name="activityYear"
+                      placeholder="Activity Year"
+                      value={searchQuery.activityYear}
+                      onChange={handleSearchChange}
+                    >
+                      <option value="">ทั้งหมด</option>
+                      <option value="2566/1">2566/1 </option>
+                      <option value="2566/2">2566/2</option>
+                      <option value="2565/1">2565/1</option>
+                      <option value="2565/2">2565/2</option>
+                      <option value="2565/summer">2565/summer</option>
+                    </Form.Control>
+                  </Col>
+                  <Col xs={12} sm={6} md={4}>
+                    <Form.Group controlId="department">
+                      <Form.Label>คณะวิชา</Form.Label>
+                      <Form.Control
+                        as="select"
+                        name="department" // Update the name attribute to a unique value
+                        value={searchQuery.department}
+                        onChange={handleSearchChange}
+                      >
+                        <option value="">-- เลือก --</option>
+                        {facultyList.map((faculty) => (
+                          <option value={faculty.Fac_ID} key={faculty.Fac_ID}>
+                            {faculty.Fac_NameTH}
+                          </option>
+                        ))}
+                      </Form.Control>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} sm={6} md={4}>
+                    <Form.Group controlId="institution">
+                      <Form.Label>ศูนย์/สำนัก</Form.Label>
+                      <Form.Control
+                        as="select"
+                        name="institution" // Update the name attribute to a unique value
+                        onChange={handleSearchChange}
+                        value={searchQuery.institution}
+                      >
+                        <option value="">-- เลือก --</option>
+                        {institution.map((inst) => (
+                          <option value={inst.Fac_ID} key={inst.Fac_ID}>
+                            {inst.Fac_NameTH}
+                          </option>
+                        ))}
+                      </Form.Control>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </Form>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <Button
+                  style={{
+                    padding: "5px 10px",
+                    borderRadius: "5px",
+                    border: isActive ? "1px solid orange" : "none", // Add border for non-active button
+                    backgroundColor: isActive ? "white" : "orange",
+                    color: isActive ? "black" : "white",
+                    width: 150,
+                    fontSize: 20,
+                  }}
+                  className="btn btn-warning"
+                  onClick={handleActiveClick}
                 >
-                  <option value="">-- เลือก --</option>
-                  <option value="2566/1">2566/1 </option>
-                  <option value="2566/2">2566/2</option>
-                  <option value="2565/1">2565/1</option>
-                  <option value="2565/2">2565/2</option>
-                  <option value="2565/summer">2565/summer</option>
-                </Form.Control>
-              </Form.Group>
-            </Form>
+                  รอการตรวจสอบ
+                </Button>
+
+                <Button
+                  className="btn btn-success"
+                  style={{
+                    padding: "5px 10px",
+                    borderRadius: "5px",
+                    marginRight: "10px",
+                    border: !isActive ? "1px solid green" : "none", // Add border for non-active button
+                    backgroundColor: isActive ? "green" : "white",
+                    color: isActive ? "white" : "black",
+                    width: 150,
+                    fontSize: 20,
+                  }}
+                  onClick={handleActiveClick}
+                >
+                  ตรวจสอบแล้ว
+                </Button>
+              </div>
+              <Row className="mb-3 justify-content-end mt-3">
+                <Col xs={12} sm={6} md={4}>
+                  <Button
+                    onClick={() => handleSearchSubmit()}
+                    variant="primary"
+                    style={{ fontSize: 22 }}
+                  >
+                    <Search /> ค้นหา
+                  </Button>
+                </Col>
+              </Row>
+            </div>
           </div>
           <div
             style={{
@@ -271,7 +529,9 @@ const Activity_Inside = () => {
               marginTop: 30,
             }}
           >
-            {teacherForm.length > 0 && (
+            {teacherForm === 0 ? (
+              <p style={{ color: "red" }}>***ไม่มีข้อมูลกิจกรรม***</p>
+            ) : (
               <ListGroup>
                 <Row
                   className="justify-content-center"
@@ -414,7 +674,7 @@ const Activity_Inside = () => {
                         variant="top"
                         src={`data:image/png;base64,${picture}`}
                         className="img-fluid"
-                        style={{ width: 500 }}
+                        style={{ width: 500, height: 600 }}
                       />
                     ) : (
                       <img

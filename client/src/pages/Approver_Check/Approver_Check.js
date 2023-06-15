@@ -30,10 +30,11 @@ const Approver_Check = () => {
   const [activityYear, setActivityYear] = useState("");
   const [activityType, setActivityType] = useState("");
   const [studentForm, setStudentForm] = useState([]);
+  const hostName = '192.168.0.119:3333'
 
   useEffect(() => {
     // Make a GET request to retrieve the data from the server
-    fetch(`http://localhost:3333/display_student_activity?activity_type=${activityType}&activity_year=${activityYear}`)
+    fetch(`http://${hostName}/display_student_activity?activity_type=${activityType}&activity_year=${activityYear}`)
       .then((response) => response.json())
       .then((data) => {
         setStudentForm(data);

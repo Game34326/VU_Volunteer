@@ -36,6 +36,7 @@ const Student_Form = () => {
   const [activityName, setActivityName] = useState("");
   const [activityYear, setActivityYear] = useState("");
   const [activityType, setActivityType] = useState("");
+  const [activityPlace, setActivityPlace] = useState("");
   const [activityDate, setActivityDate] = useState("");
   const [formattedDate, setFormattedDate] = useState("");
   const [activityTarget, setActivityTarget] = useState([]);
@@ -47,12 +48,14 @@ const Student_Form = () => {
   const [activityHours, setActivityHours] = useState(null);
   const [selectedDates, setSelectedDates] = useState([]);
   const [teacherForm, setTeacherForm] = useState([]);
-  const [studentForm, setStudentForm] = useState([]);
+  const [hoursOnline, setHoursOnline] = useState([]);
+  const [hoursOutside, setHoursOutside] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [checkInside, setCheckInside] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activityTimes, setActivityTimes] = useState([]);
+  const [refresh, setRefresh] = useState(false);
 
   const [errors, setErrors] = useState({});
 
@@ -67,6 +70,60 @@ const Student_Form = () => {
   const [fac_name] = useState(plaintext.fac_name);
   const [maj_name] = useState(plaintext.maj_name);
   const navigate = useNavigate();
+
+  const hostName = '192.168.0.119:3333'
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/");
+      return;
+    }
+  }, []);
+
+  useEffect(() => {
+    fetch(`http://${hostName}/student_form_check?student_id=${user_id}`)
+      .then((response) => response.json())
+      .then((data) => {
+        setCheckInside(data);
+      })
+      .catch((error) => console.error(error));
+  }, [refresh]);
+
+  useEffect(() => {
+    if (startTime && endTime) {
+      const diff = moment(endTime).diff(moment(startTime), "hours");
+      if (diff > 6) {
+        setActivityHours(6);
+      } else {
+        setActivityHours(diff);
+      }
+    } else {
+      setActivityHours(null);
+    }
+  }, [startTime, endTime]);
+
+  useEffect(() => {
+    // Make a GET request to retrieve the data from the server
+    fetch(
+      `http://${hostName}/teacher_form_display?activity_year=${activityYear}`
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        setTeacherForm(data);
+      })
+      .catch((error) => console.error(error));
+
+    // fetch(
+    //   `http://${hostName}/student_6_hours?student_id=${user_id}&activity_year=${activityYear}`
+    // )
+    //   .then((response) => response.json())
+    //   .then((data) => {
+    //     setHoursOutside(data.hoursOutside);
+    //     setHoursOnline(data.hoursOnline);
+    //   })
+    //   .catch((error) => console.error(error));
+  }, [activityYear, user_id]);
 
   const handleFormSubmit = () => {
     const errors = validateForm();
@@ -91,13 +148,14 @@ const Student_Form = () => {
       formData.append("maj_name", maj_name);
       formData.append("start_time", formattedStartTime);
       formData.append("end_time", formattedEndTime);
+      formData.append("activity_place", activityPlace);
 
       // Append each file to the formData
       activityPictures.forEach((file) => {
         formData.append("activity_pictures", file);
       });
 
-      fetch("http://localhost:3333/student_form", {
+      fetch(`http://${hostName}/student_form`, {
         method: "POST",
         body: formData,
       })
@@ -115,17 +173,43 @@ const Student_Form = () => {
               },
             });
             navigate(-1);
+          } else if (response.status === 400) {
+            response.json().then((data) => {
+              setLoading(false);
+              console.error("Error submitting form:", data.error);
+              Swal.fire({
+                icon: "warning",
+                html: `
+                <span style="color: black;">
+                  ชั่วโมงกิจกรรมจิตอาสาเข้าร่วมด้วยตนเองจะต้องไม่เกิน 6 ชั่วโมงต่อภาคเรียน
+                </span>
+                <br>
+                <span style="color: green;">
+                  จำนวนชั่วโมงปัจจุบัน ${data.totalHours} ชั่วโมง
+                </span>
+              `,
+                showConfirmButton: true,
+                customClass: {
+                  htmlContainer: "thai-font",
+                },
+              });
+            });
           } else {
             setLoading(false);
             console.error("Error submitting form");
             Swal.fire({
               icon: "error",
-              text: "กรุณากรอกข้อมูลให้ถูกต้อง",
+              text: "เกิดข้อผิดพลาดในการส่งฟอร์ม",
             });
           }
         })
         .catch((error) => {
           console.error(error);
+          setLoading(false);
+          Swal.fire({
+            icon: "error",
+            text: "เกิดข้อผิดพลาดในการส่งฟอร์ม",
+          });
         });
     } else {
       setLoading(false);
@@ -138,24 +222,31 @@ const Student_Form = () => {
   };
 
   const activityTypeCheck = "กิจกรรมจิตอาสาเข้าร่วมด้วยตนเอง";
-  const matchingForms = studentForm.filter(
-    (item) =>
-      item.activity_type === activityTypeCheck &&
-      item.activity_year === activityYear
-  );
-  const totalHours = matchingForms.reduce(
+  let activityTypeText = <>{activityTypeCheck}</>;
+  let activityTypeColor = "black";
+  const totalHours = hoursOutside.reduce(
     (sum, item) => sum + item.activity_hours,
     0
   );
-
-  let activityTypeText = activityTypeCheck;
-  let activityTypeColor = "black";
-
   if (totalHours >= 6) {
     activityTypeText = (
       <span style={{ color: "red" }}>{activityTypeCheck}</span>
     );
     activityTypeColor = "red";
+  }
+
+  const activityTypeCheck1 = "กิจกรรมอบรมออนไลน์จิตสาธารณะ กยศ.";
+  let activityTypeText1 = <>{activityTypeCheck1}</>;
+  let activityTypeColor1 = "black";
+  const totalHours1 = hoursOnline.reduce(
+    (sum, item) => sum + item.activity_hours,
+    0
+  );
+  if (totalHours1 >= 6) {
+    activityTypeText1 = (
+      <span style={{ color: "red" }}>{activityTypeCheck1}</span>
+    );
+    activityTypeColor1 = "red";
   }
 
   const handleFormSubmitModal = () => {
@@ -186,12 +277,13 @@ const Student_Form = () => {
         formData.append("activity_pictures", file);
       });
 
-      fetch("http://localhost:3333/student_form_inside", {
+      fetch(`http://${hostName}/student_form_inside`, {
         method: "POST",
         body: formData,
       })
         .then((response) => {
           if (response.ok) {
+            setRefresh(!refresh);
             setLoading(false);
             console.log("Form submitted successfully!");
             Swal.fire({
@@ -235,20 +327,24 @@ const Student_Form = () => {
     if (Object.keys(errors).length === 0) {
       setLoading(true);
       const formData = new FormData();
+      const formattedDate = format(activityDate, "yyyy-MM-dd");
       formData.append("activity_year", activityYear);
       formData.append("activity_type", activityType);
       formData.append("student_id", user_id);
       formData.append("student_name", fullname);
       formData.append("fac_name", fac_name);
       formData.append("maj_name", maj_name);
+      formData.append("activity_date", formattedDate);
       formData.append("activity_hours", 6);
+      formData.append("activity_place", activityPlace);
+      formData.append("activity_position", activityPosition);
 
       // Append each file the formData
       activityPictures.forEach((file) => {
         formData.append("activity_pictures", file);
       });
 
-      fetch("http://localhost:3333/student_form_blood", {
+      fetch(`http://${hostName}/student_form_blood`, {
         method: "POST",
         body: formData,
       })
@@ -310,7 +406,7 @@ const Student_Form = () => {
       formData.append("start_time", formattedStartTime);
       formData.append("end_time", formattedEndTime);
 
-      fetch("http://localhost:3333/student_form_online", {
+      fetch(`http://${hostName}/student_form_online`, {
         method: "POST",
         body: formData,
       })
@@ -328,12 +424,33 @@ const Student_Form = () => {
               },
             });
             navigate(-1);
+          } else if (response.status === 400) {
+            response.json().then((data) => {
+              setLoading(false);
+              console.error("Error submitting form:", data.error);
+              Swal.fire({
+                icon: "warning",
+                html: `
+                  <span style="color: black;">
+                  ชั่วโมงกิจกรรมอบรมออนไลน์จิตสาธารณะ กยศ. จะต้องไม่เกิน 6 ชั่วโมงต่อภาคเรียน
+                  </span>
+                  <br>
+                  <span style="color: green;">
+                    จำนวนชั่วโมงปัจจุบัน ${data.totalHours} ชั่วโมง
+                  </span>
+                `,
+                showConfirmButton: true,
+                customClass: {
+                  htmlContainer: "thai-font",
+                },
+              });
+            });
           } else {
             setLoading(false);
             console.error("Error submitting form");
             Swal.fire({
               icon: "error",
-              text: "กรุณากรอกข้อมูลให้ถูกต้อง",
+              text: "เกิดข้อผิดพลาดในการส่งฟอร์ม",
             });
           }
         })
@@ -349,24 +466,6 @@ const Student_Form = () => {
       });
     }
   };
-
-  useEffect(() => {
-    fetch(`http://localhost:3333/student_form_hours?student_id=${user_id}`)
-      .then((response) => response.json())
-      .then((data) => {
-        setStudentForm(data);
-      })
-      .catch((error) => console.error(error));
-  }, []);
-
-  useEffect(() => {
-    fetch(`http://localhost:3333/student_form_check?student_id=${user_id}`)
-      .then((response) => response.json())
-      .then((data) => {
-        setCheckInside(data);
-      })
-      .catch((error) => console.error(error));
-  }, []);
 
   const handleShowModal = (activity) => {
     setSelectedActivity(activity);
@@ -386,6 +485,9 @@ const Student_Form = () => {
     }
     if (!activityDate) {
       errors.activityDate = "กรุณาเลือกวันที่จัดกิจกรรม";
+    }
+    if (!activityPlace) {
+      errors.activityPlace = "กรุณาเลือกวันที่จัดกิจกรรม";
     }
     if (activityTarget.length === 0) {
       errors.activityTarget = "กรุณาเลือกกลุ่มเป้าหมายของกิจกรรม";
@@ -438,7 +540,7 @@ const Student_Form = () => {
     if (!activityPictures || activityPictures.length < 2) {
       errors.activityPictures = "กรุณาเพิ่มรูปภาพกิจกรรม 2 รูปภาพ";
     }
-    if(!totalHoursAll){
+    if (!totalHoursAll) {
       errors.totalHoursAll = "กรุณากรอกจำนวนชั่วโมง";
     }
     return errors;
@@ -449,28 +551,20 @@ const Student_Form = () => {
     if (!activityPictures || activityPictures.length < 3) {
       errors.activityPictures = "กรุณาเพิ่มรูปภาพกิจกรรม 3 รูปภาพ";
     }
+    if (!activityDate) {
+      errors.activityDate = "กรุณากรอกวันที่เข้าร่วมกิจกรรม";
+    }
+    if (!activityPlace) {
+      errors.activityPlace = "กรุณากรอกสถานที่จัดกิจกรรม";
+    }
+    if (!activityPosition) {
+      errors.activityPosition = "กรุณาระบุหน่วยงาน";
+    }
+    if (!activityYear) {
+      errors.activityYear = "กรุณาเลือกปีการศึกษา/ภาคเรียน";
+    }
     return errors;
   };
-
-  useEffect(() => {
-    // Make a GET request to retrieve the data from the server
-    fetch(
-      `http://localhost:3333/teacher_form_display?activity_year=${activityYear}`
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        setTeacherForm(data);
-      })
-      .catch((error) => console.error(error));
-  }, [activityYear]);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/");
-      return;
-    }
-  }, []);
 
   const handleDateChange = (e) => {
     setActivityDate(e);
@@ -528,28 +622,14 @@ const Student_Form = () => {
     const diff = moment(end, "HH:mm:ss").diff(moment(start, "HH:mm:ss"));
     const duration = moment.duration(diff);
     const hours = duration.asHours();
-  
+
     // Limit hours to 6 per day
     if (hours > 6) {
       return 6;
     }
-  
+
     return Math.floor(hours); // round down to nearest integer
   }
-  
-
-  useEffect(() => {
-    if (startTime && endTime) {
-      const diff = moment(endTime).diff(moment(startTime), "hours");
-      if (diff > 6) {
-        setActivityHours(6);
-      } else {
-        setActivityHours(diff);
-      }
-    } else {
-      setActivityHours(null);
-    }
-  }, [startTime, endTime]);
 
   const data = (() => {
     const startDate = moment(selectedActivity?.activity_date);
@@ -557,7 +637,10 @@ const Student_Form = () => {
     const diffDays = endDate.diff(startDate, "days") + 1;
     const dates = [];
     for (let i = 0; i < diffDays; i++) {
-      const date = moment(startDate).add(i, "days").add(543, "years").format("D MMMM YYYY");
+      const date = moment(startDate)
+        .add(i, "days")
+        .add(543, "years")
+        .format("D MMMM YYYY");
       const times = activityTimes[i] || { start_time: null, end_time: null };
       const hours = calculateHours(times.start_time, times.end_time);
       const isChecked = times.start_time !== null;
@@ -571,7 +654,6 @@ const Student_Form = () => {
           },
         });
       }
-      console.log(date)
     }
     return dates;
   })();
@@ -633,7 +715,6 @@ const Student_Form = () => {
             </Form.Label>
             <Form.Control
               as="select"
-              value={activityYear}
               onChange={(e) => setActivityYear(e.target.value)}
             >
               <option value="">-- เลือก --</option>
@@ -670,8 +751,11 @@ const Student_Form = () => {
               <option value="กิจกรรมการบริจาคโลหิต">
                 กิจกรรมการบริจาคโลหิต
               </option>
-              <option value="กิจกรรมอบรมออนไลน์จิตสาธารณะ กยศ.">
-                กิจกรรมอบรมออนไลน์จิตสาธารณะ กยศ.
+              <option
+                value={activityTypeCheck1}
+                style={{ color: activityTypeColor1 }}
+              >
+                {activityTypeText1}
               </option>
             </Form.Control>
             {errors.activityType && (
@@ -682,8 +766,11 @@ const Student_Form = () => {
           {activityType === "กิจกรรมจิตอาสาเข้าร่วมด้วยตนเอง" && (
             <>
               {totalHours >= 6 ? (
-                <div style={{ color: "red" }} className="form-group">
-                  คุณได้ทำ{activityTypeCheck}ครบ 6 ชั่วโมงในภาคเรียนนี้แล้ว
+                <div
+                  style={{ color: "red", fontSize: 24 }}
+                  className="form-group"
+                >
+                  คุณได้ทำ{activityTypeText}ครบ 6 ชั่วโมงในภาคเรียนนี้แล้ว
                   ไม่สามารถเพิ่มข้อมูลได้
                 </div>
               ) : (
@@ -703,7 +790,8 @@ const Student_Form = () => {
                   </Form.Group>
                   <Form.Group controlId="activityDate" className="form-group">
                     <Form.Label>
-                      วันที่จัดกิจกรรม: <span style={{ color: "red" }}>*</span>{" "}
+                      วันที่เข้าร่วมกิจกรรม:{" "}
+                      <span style={{ color: "red" }}>*</span>{" "}
                       <span style={{ color: "green", fontWeight: "bold" }}>
                         {formattedDate}
                       </span>
@@ -723,6 +811,19 @@ const Student_Form = () => {
                       <div className="text-danger">{errors.activityDate}</div>
                     )}
                   </Form.Group>
+                  <Form.Group controlId="activityPlace" className="form-group">
+                    <Form.Label>
+                      สถานที่จัดกิจกรรม <span style={{ color: "red" }}>*</span>{" "}
+                    </Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={activityPlace}
+                      onChange={(e) => setActivityPlace(e.target.value)}
+                    />
+                    {errors.activityPlace && (
+                      <div className="text-danger">{errors.activityPlace}</div>
+                    )}
+                  </Form.Group>
                   <Form.Group controlId="activityTarget" className="form-group">
                     <Form.Label>
                       กลุ่มเป้าหมายของกิจกรรม{" "}
@@ -734,6 +835,7 @@ const Student_Form = () => {
                       "ชุมชน",
                       "สาธารณประโยชน์",
                       "สถานที่ราชการ",
+                      "บุคคลทุพพลภาพ",
                     ].map((target) => (
                       <div key={target}>
                         <Form.Check
@@ -777,7 +879,10 @@ const Student_Form = () => {
                       </div>
                     )}
                   </Form.Group>
-                  <div className="form-group" style={{ fontWeight: "bold" }}>
+                  <div
+                    className="form-group"
+                    style={{ fontWeight: "bold", fontSize: 22 }}
+                  >
                     จำนวนชั่วโมงที่ทำกิจกรรม:{" "}
                     {activityHours && (
                       <span style={{ color: "green" }}>
@@ -787,7 +892,7 @@ const Student_Form = () => {
                   </div>
                   <p
                     style={{
-                      color: "gray",
+                      color: "black",
                       fontSize: 18,
                       fontWeight: "normal",
                       marginLeft: 10,
@@ -840,7 +945,7 @@ const Student_Form = () => {
                         <span style={{ color: "red" }}>*</span>{" "}
                         <p
                           style={{
-                            color: "gray",
+                            color: "black",
                             fontSize: 18,
                             fontWeight: "normal",
                           }}
@@ -964,6 +1069,57 @@ const Student_Form = () => {
           <div className="thai-font">
             {activityType === "กิจกรรมการบริจาคโลหิต" && (
               <Form>
+                <Form.Group controlId="activityDate" className="form-group">
+                  <Form.Label>
+                    วันที่บริจาคโลหิต: <span style={{ color: "red" }}>*</span>{" "}
+                    <span style={{ color: "green", fontWeight: "bold" }}>
+                      {formattedDate}
+                    </span>
+                  </Form.Label>
+                  <label className="date-picker">
+                    <DatePicker
+                      selected={activityDate}
+                      onChange={handleDateChange}
+                      dateFormat="dd/MM/yyyy"
+                      locale="th"
+                      className="form-control"
+                    />
+                    <CalendarMonth className="calendar-icon" />
+                  </label>
+
+                  {errors.activityDate && (
+                    <div className="text-danger">{errors.activityDate}</div>
+                  )}
+                </Form.Group>
+
+                <Form.Group controlId="activityPosition" className="form-group">
+                  <Form.Label>
+                    สถานที่บริจาคโลหิต <span style={{ color: "red" }}>*</span>
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={activityPlace}
+                    onChange={(e) => setActivityPlace(e.target.value)}
+                  />
+                  {errors.activityPlace && (
+                    <div className="text-danger">{errors.activityPlace}</div>
+                  )}
+                </Form.Group>
+
+                <Form.Group controlId="activityPosition" className="form-group">
+                  <Form.Label>
+                    จัดขึ้นโดยหน่วยงาน <span style={{ color: "red" }}>*</span>
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={activityPosition}
+                    onChange={(e) => setActivityPosition(e.target.value)}
+                  />
+                  {errors.activityPosition && (
+                    <div className="text-danger">{errors.activityPosition}</div>
+                  )}
+                </Form.Group>
+
                 <Form.Group controlId="activityPicture" className="form-group">
                   <div style={{ pointerEvents: "none" }}>
                     <Form.Label>
@@ -971,7 +1127,7 @@ const Student_Form = () => {
                       <span style={{ color: "red" }}>*</span>{" "}
                       <p
                         style={{
-                          color: "gray",
+                          color: "black",
                           fontSize: 18,
                           fontWeight: "normal",
                         }}
@@ -1068,140 +1224,174 @@ const Student_Form = () => {
 
             <div className="thai-font">
               {activityType === "กิจกรรมอบรมออนไลน์จิตสาธารณะ กยศ." && (
-                <Form>
-                  <Form.Group controlId="activityTarget" className="form-group">
-                    <Form.Label>
-                      ชื่อกิจกรรม <span style={{ color: "red" }}>*</span>{" "}
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={activityName}
-                      onChange={(e) => setActivityName(e.target.value)}
-                    />
-                    {errors.activityName && (
-                      <div className="text-danger">{errors.activityName}</div>
-                    )}
-                  </Form.Group>
-                  <Form.Group controlId="activityDate" className="form-group">
-                    <Form.Label>
-                      วันที่จัดกิจกรรม: <span style={{ color: "red" }}>*</span>{" "}
-                      <span style={{ color: "green", fontWeight: "bold" }}>
-                        {formattedDate}
-                      </span>
-                    </Form.Label>
-                    <label className="date-picker">
-                      <DatePicker
-                        selected={activityDate}
-                        onChange={handleDateChange}
-                        dateFormat="dd/MM/yyyy"
-                        locale="th"
-                        className="form-control"
-                      />
-                      <CalendarMonth className="calendar-icon" />
-                    </label>
-
-                    {errors.activityDate && (
-                      <div className="text-danger">{errors.activityDate}</div>
-                    )}
-                  </Form.Group>
-                  <div className="form-group" style={{ fontWeight: "bold" }}>
-                    จำนวนชั่วโมงที่ทำกิจกรรม:{" "}
-                    {activityHours && (
-                      <span style={{ color: "green" }}>
-                        {activityHours > 6 ? 6 : activityHours} ชั่วโมง
-                      </span>
-                    )}{" "}
-                  </div>
-                  <p
-                    style={{
-                      color: "gray",
-                      fontSize: 18,
-                      fontWeight: "normal",
-                      marginLeft: 10,
-                    }}
-                  >
-                    หมายเหตุ: จำนวนชั่วโมงในกิจกรรมอบรมออนไลน์จิตสาธารณะ กยศ.
-                    จะต้องไม่เกิน 6 ชั่วโมงต่อภาคการศึกษา
-                  </p>{" "}
-                  <Form.Group
-                    style={{ marginLeft: 25, fontSize: 20 }}
-                    controlId="activity_hours"
-                    className="form-group"
-                  >
-                    เวลาเริ่มทำกิจกรรม <span style={{ color: "red" }}>*</span>
-                    <TimePicker
-                      showSecond={false}
-                      defaultValue={null}
-                      onChange={(time) => handleTimeChange(time, "start")}
-                      style={{ fontFamily: "sans-serif" }}
-                    />
-                  </Form.Group>
-                  <Form.Group
-                    style={{ marginLeft: 25, fontSize: 20 }}
-                    controlId="activity_hours"
-                    className="form-group"
-                  >
-                    เวลาสิ้นสุดกิจกรรม <span style={{ color: "red" }}>*</span>
-                    <TimePicker
-                      showSecond={false}
-                      defaultValue={null}
-                      onChange={(time) => handleTimeChange(time, "end")}
-                      style={{ fontFamily: "sans-serif" }}
-                    />
-                  </Form.Group>
-                  {errors.activityHours && (
-                    <div className="text-danger form-group">
-                      {errors.activityHours}
-                    </div>
-                  )}
-                  <Form.Group
-                    controlId="activityDocument"
-                    className="form-group"
-                  >
-                    <div style={{ pointerEvents: "none" }}>
-                      <Form.Label>
-                        ใบเกียรติบัตรการเข้าร่วมอบรมออนไลน์ (.pdf){" "}
-                        <span style={{ color: "red" }}>*</span>
-                      </Form.Label>
-                    </div>
-
-                    <Form.Control
-                      type="file"
-                      accept="application/pdf"
-                      name="activity_document"
-                      onChange={(e) => setActivityDocument(e.target.files[0])}
-                    />
-                    {errors.activityDocument && (
-                      <div className="text-danger">
-                        {errors.activityDocument}
-                      </div>
-                    )}
-                  </Form.Group>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Button
-                      onClick={() => handleFormOnline()}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginTop: "10px",
-                        marginBottom: 20,
-                        border: "none",
-                        alignSelf: "center",
-                        textAlign: "center",
-                        fontSize: 20,
-                      }}
+                <>
+                  {totalHours1 >= 6 ? (
+                    <div
+                      style={{ color: "red", fontSize: 24 }}
+                      className="form-group"
                     >
-                      เพิ่มข้อมูลกิจกรรม
-                    </Button>
-                  </div>
-                </Form>
+                      คุณได้ทำ{activityTypeText1}ครบ 6 ชั่วโมงในภาคเรียนนี้แล้ว
+                      ไม่สามารถเพิ่มข้อมูลได้
+                    </div>
+                  ) : (
+                    <Form>
+                      <Form.Group
+                        controlId="activityTarget"
+                        className="form-group"
+                      >
+                        <Form.Label>
+                          หัวข้อการเข้าอบรม{" "}
+                          <span style={{ color: "red" }}>*</span>{" "}
+                        </Form.Label>
+                        <Form.Control
+                          type="text"
+                          value={activityName}
+                          onChange={(e) => setActivityName(e.target.value)}
+                        />
+                        {errors.activityName && (
+                          <div className="text-danger">
+                            {errors.activityName}
+                          </div>
+                        )}
+                      </Form.Group>
+                      <Form.Group
+                        controlId="activityDate"
+                        className="form-group"
+                      >
+                        <Form.Label>
+                          วันที่เข้าร่วมการอบรม:{" "}
+                          <span style={{ color: "red" }}>*</span>{" "}
+                          <span style={{ color: "green", fontWeight: "bold" }}>
+                            {formattedDate}
+                          </span>
+                        </Form.Label>
+                        <label className="date-picker">
+                          <DatePicker
+                            selected={activityDate}
+                            onChange={handleDateChange}
+                            dateFormat="dd/MM/yyyy"
+                            locale="th"
+                            className="form-control"
+                          />
+                          <CalendarMonth className="calendar-icon" />
+                        </label>
+
+                        {errors.activityDate && (
+                          <div className="text-danger">
+                            {errors.activityDate}
+                          </div>
+                        )}
+                      </Form.Group>
+                      <div
+                        className="form-group"
+                        style={{ fontWeight: "bold" }}
+                      >
+                        <Form.Label>
+                          จำนวนชั่วโมงที่เข้าอบรม:{" "}
+                          {activityHours && (
+                            <span style={{ color: "green" }}>
+                              {activityHours > 6 ? 6 : activityHours} ชั่วโมง
+                            </span>
+                          )}{" "}
+                        </Form.Label>
+                      </div>
+                      <p
+                        style={{
+                          color: "black",
+                          fontSize: 18,
+                          fontWeight: "normal",
+                          marginLeft: 10,
+                        }}
+                      >
+                        หมายเหตุ: จำนวนชั่วโมงในกิจกรรมอบรมออนไลน์จิตสาธารณะ
+                        กยศ. จะต้องไม่เกิน 6 ชั่วโมงต่อภาคการศึกษา
+                        และตรงตามใบเกียรติบัตรที่แนบมา
+                      </p>{" "}
+                      <Form.Group
+                        style={{ marginLeft: 25, fontSize: 20 }}
+                        controlId="activity_hours"
+                        className="form-group"
+                      >
+                        เวลาเริ่มทำกิจกรรม{" "}
+                        <span style={{ color: "red" }}>*</span>
+                        <TimePicker
+                          showSecond={false}
+                          defaultValue={null}
+                          onChange={(time) => handleTimeChange(time, "start")}
+                          style={{ fontFamily: "sans-serif" }}
+                        />
+                      </Form.Group>
+                      <Form.Group
+                        style={{ marginLeft: 25, fontSize: 20 }}
+                        controlId="activity_hours"
+                        className="form-group"
+                      >
+                        เวลาสิ้นสุดกิจกรรม{" "}
+                        <span style={{ color: "red" }}>*</span>
+                        <TimePicker
+                          showSecond={false}
+                          defaultValue={null}
+                          onChange={(time) => handleTimeChange(time, "end")}
+                          style={{ fontFamily: "sans-serif" }}
+                        />
+                      </Form.Group>
+                      {errors.activityHours && (
+                        <div className="text-danger form-group">
+                          {errors.activityHours}
+                        </div>
+                      )}
+                      <Form.Group
+                        controlId="activityDocument"
+                        className="form-group"
+                      >
+                        <div style={{ pointerEvents: "none" }}>
+                          <Form.Label>
+                            หลักฐานการเข้าร่วมอบรมออนไลน์ (.pdf){" "}
+                            <span style={{ color: "red" }}>*</span>
+                          </Form.Label>
+                        </div>
+
+                        <Form.Control
+                          type="file"
+                          accept="application/pdf"
+                          name="activity_document"
+                          onChange={(e) =>
+                            setActivityDocument(e.target.files[0])
+                          }
+                        />
+                        {errors.activityDocument && (
+                          <div className="text-danger">
+                            {errors.activityDocument}
+                          </div>
+                        )}
+                      </Form.Group>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Button
+                          onClick={() => handleFormOnline()}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginTop: "10px",
+                            marginBottom: 20,
+                            border: "none",
+                            alignSelf: "center",
+                            textAlign: "center",
+                            fontSize: 20,
+                          }}
+                        >
+                          เพิ่มข้อมูลกิจกรรม
+                        </Button>
+                      </div>
+                    </Form>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -1407,9 +1597,6 @@ const Student_Form = () => {
               {selectedActivity?.activity_place}
             </p>
             <p>
-              <strong>ลักษณะกิจกรรม:</strong> {selectedActivity?.activity_style}
-            </p>
-            <p>
               <strong>ผู้ดูแลกิจกรรม:</strong> {selectedActivity?.teacher_name}
             </p>
             <p>
@@ -1422,7 +1609,8 @@ const Student_Form = () => {
             <Form>
               <Form.Group controlId="activityPosition" className="form-group">
                 <Form.Label>
-                  กรอกตำแหน่งหน้าที่ที่ได้รับมอบหมายและปฏิบัติ
+                  กรอกภาระงานหน้าที่ที่ได้รับมอบหมาย{" "}
+                  <span style={{ color: "red" }}>*</span>
                 </Form.Label>
                 <Form.Control
                   as="textarea"
@@ -1440,7 +1628,10 @@ const Student_Form = () => {
                 className="form-group"
               >
                 <p>
-                  <strong>วันที่ปฏิบัติกิจกรรม:</strong>{" "}
+                  <strong>
+                    วันที่ปฏิบัติกิจกรรม:{" "}
+                    <span style={{ color: "red" }}>*</span>{" "}
+                  </strong>{" "}
                   {(() => {
                     const startDate = moment(selectedActivity?.activity_date);
                     const endDate = moment(selectedActivity?.last_date);
@@ -1448,7 +1639,7 @@ const Student_Form = () => {
                     const dates = [];
                     for (let i = 0; i < diffDays; i++) {
                       const date =
-                        moment(startDate).add(i, "days").format("D MMMM") +
+                        moment(startDate).add(i, "days").format("D MMMM ") +
                         (moment(startDate).add(i, "days").year() + 543);
                       dates.push(date);
                     }
@@ -1491,7 +1682,7 @@ const Student_Form = () => {
                             }}
                           />
                           <label
-                            style={{ marginLeft: 10 }}
+                            style={{ marginLeft: 10, marginTop: 10 }}
                             htmlFor={`date-${index}`}
                           >
                             {date}
@@ -1503,11 +1694,14 @@ const Student_Form = () => {
                             )}
                           </label>
                           {isChecked && (
-                            <div style={{ marginLeft: 25 }}>
-                              <div>
-                                เวลาเริ่มทำกิจกรรม{" "}
-                                <span style={{ color: "red" }}>*</span>
-                              </div>
+                            <div
+                              style={{
+                                marginLeft: 25,
+                                display: "flex",
+                                flexDirection: "row",
+                              }}
+                            >
+                              <div>เวลาเริ่ม </div>
                               <TimePicker
                                 showSecond={false}
                                 minuteStep={10}
@@ -1519,12 +1713,9 @@ const Student_Form = () => {
                                     index
                                   )
                                 }
-                                style={{ fontFamily: "sans-serif" }}
+                                style={{ fontFamily: "sans-serif", width: 100 }}
                               />
-                              <div>
-                                เวลาสิ้นสุดกิจกรรม{" "}
-                                <span style={{ color: "red" }}>*</span>
-                              </div>
+                              <div style={{ marginLeft: 20 }}>เวลาสิ้นสุด </div>
                               <TimePicker
                                 showSecond={false}
                                 minuteStep={10}
@@ -1532,7 +1723,7 @@ const Student_Form = () => {
                                 onChange={(time) =>
                                   handleDateTimeChange(time, "end_time", index)
                                 }
-                                style={{ fontFamily: "sans-serif" }}
+                                style={{ fontFamily: "sans-serif", width: 100 }}
                               />
                             </div>
                           )}
@@ -1550,7 +1741,7 @@ const Student_Form = () => {
                 <Form.Label>จำนวนชั่วโมงทั้งหมดที่ทำกิจกรรมนี้</Form.Label>
                 <InputGroup>
                   <Form.Control
-                  disabled
+                    disabled
                     type="number"
                     placeholder="กรอกจำนวนชั่วโมง"
                     step="1"
@@ -1561,7 +1752,20 @@ const Student_Form = () => {
               </Form.Group>
 
               <Form.Group controlId="activityPicture" className="form-group">
-                <Form.Label>รูปภาพกิจกรรมกิจกรรม</Form.Label>
+                <Form.Label>
+                  รูปภาพกิจกรรมจำนวน 2 ภาพ{" "}
+                  <span style={{ color: "red" }}>*</span>{" "}
+                  <p
+                    style={{
+                      color: "black",
+                      fontSize: 18,
+                      fontWeight: "normal",
+                    }}
+                  >
+                    หมายเหตุ:
+                    รูปภาพกิจกรรมจะต้องเห็นใบหน้าของนักศึกษาขณะทำกิจกรรมอย่างชัดเจน
+                  </p>{" "}
+                </Form.Label> 
                 <Form.Control
                   type="file"
                   accept="image/*"

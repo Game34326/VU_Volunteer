@@ -28,9 +28,24 @@
     display: block;
   }
 
-  .logout-btn {
-    display: block;
+  .table-header {
+    margin-left: 0px !important;
+    margin-right: 0px !important;
   }
+
+  .modal {
+    display: block !important; /* I added this to see the modal, you don't need this */
+  }
+
+  /* Important part */
+  .modal-dialog {
+    overflow-y: initial !important;
+  }
+  .modal-body {
+    height: 75vh;
+    overflow-y: auto;
+  }
+
 }
 
 .navbar-toggler {
@@ -53,10 +68,6 @@
 
 .navbar-toggler-icon.open {
   transform: rotate(90deg);
-}
-
-.logout-btn {
-  display: none;
 }
 
 .sidebar {
@@ -111,7 +122,7 @@
   padding: 20px;
 }
 
-.table-header {
+.table-student {
   overflow-x: auto;
   margin-left: 20%;
   margin-right: 20px;
@@ -161,5 +172,13 @@ tbody {
 
 .thai-font {
   font-family: "TH Sarabun", sans-serif;
-  font-size: 28px;
+  font-size: 24px;
+}
+
+.student-detail-text {
+  font-size: 22px !important;
+}
+
+.hours-detail-text {
+  font-size: 20px !important ;
 }

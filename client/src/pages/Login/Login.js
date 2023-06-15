@@ -20,9 +20,7 @@ export default function Login() {
 
   const navigation = useNavigate();
 
-  const handleLogin = (event) => {
-    event.preventDefault(); //protect redirect
-
+  const handleLogin = () => {
     var myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/json");
 
@@ -40,7 +38,7 @@ export default function Login() {
     };
 
     fetch(
-      `http://appz.vu.ac.th:8989/VuAPIVer1/select_login.php`,
+      `http://192.168.0.27:8989/Vuapiver1/select_login.php`,
       requestOptions
     )
       .then((response) => response.json())
@@ -63,6 +61,7 @@ export default function Login() {
               user_id: result.user_id,
               fac_name: result.fac_name,
               maj_name: result.maj_name,
+              job_name: result.job_name,
             }),
             "secret key 123"
           ).toString();
@@ -126,6 +125,13 @@ export default function Login() {
       .catch((error) => console.log("error", error));
   };
 
+  const handleKeyPress = (event) => {
+    if (event.key === 'Enter') {
+      handleLogin();
+    }
+  };
+
+
   return (
     <div className="login-page">
       <MDBContainer fluid>
@@ -178,6 +184,7 @@ export default function Login() {
                     autoComplete="current-password"
                     className="textField"
                     onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={handleKeyPress}
                   />
 
                   <Button

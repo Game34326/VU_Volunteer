@@ -18,6 +18,11 @@
     left: 0;
     width: 100%;
   }
+
+  .approve-container {
+    margin-left: 15%;
+    margin-right: 20px;
+  }
   
 .logout-button:hover {
   color: white !important;
@@ -105,11 +110,6 @@ tr {
   text-decoration-line: underline;
 }
 
-.content {
-  justify-content: center;
-  align-items: center;
-  margin-top: 80px;
-}
 
 /* Ensure that the SweetAlert modal has a higher z-index than other modals */
 .swal2-container {

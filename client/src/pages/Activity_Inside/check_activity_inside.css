@@ -1,0 +1,165 @@
+@media only screen and (max-width: 768px) {
+    .navbar-parent-container {
+      width: 100%;
+      padding: 0;
+      margin: 0;
+    }
+    .delete-btn {
+      margin-top: 16px;
+    }
+    .horizontal-line {
+      border-top: 1px solid black;
+    }
+    .table-responsive .table {
+      border: none;
+    }
+    .sidebar {
+      display: none;
+      position: absolute;
+      top: 56px; /* adjust this value according to your navbar height */
+      left: 0;
+      right: 0;
+      padding: 20px;
+      background-color: #f8f9fa;
+      z-index: 9999;
+    }
+  
+    .sidebar.active {
+      display: block;
+    }
+  
+    .table-header {
+      margin-left: 0% !important;
+      margin-right: 0px !important;;
+    }
+  
+  }
+  
+  .navbar-toggler {
+    border: none;
+    outline: none;
+    background-color: transparent;
+    margin-right: 15px;
+  }
+  
+  .navbar-toggler:focus {
+    outline: none;
+  }
+  
+  .navbar-toggler-icon {
+    width: 24px;
+    height: 24px;
+    background-size: cover;
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  .navbar-toggler-icon.open {
+    transform: rotate(90deg);
+  }
+  
+  .sidebar {
+    position: fixed;
+    top: 60px; /* adjust this to match your navbar height */
+    left: 0;
+    bottom: 0;
+    width: 250px;
+    background-color: #f5f5f5;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  
+  .sidebar ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .sidebar button {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+    text-align: left;
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    border-bottom: 1px solid #ddd;
+    padding: 10px 0;
+  }
+  
+  .sidebar button:hover {
+    background-color: #ddd;
+    border-radius: 10px;
+  }
+  
+  .sidebar button:focus {
+    outline: none;
+  }
+  
+  .sidebar button.active {
+    background-color: #ddd;
+    color: #000;
+    border-radius: 10px;
+  }
+  
+  .main-content {
+    margin-left: 250px;
+    padding: 20px;
+  }
+  
+  .table-check-inside {
+    overflow-x: auto;
+    margin-left: 20%;
+    margin-right: 20px;
+  }
+  
+  .logout-button:hover {
+    color: white !important;
+  }
+  
+  .nameText {
+    font-size: 18px;
+  }
+  
+  .table-responsive {
+    overflow-x: auto;
+    justify-content: center;
+  }
+  
+  tr {
+    justify-content: center;
+    text-align: center;
+  }
+  
+  tbody {
+    padding: 0;
+    margin: 0;
+  }
+  
+  .image-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    grid-gap: 10px;
+  }
+  
+  .image-container img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+  }
+  
+  @font-face {
+    font-family: "TH Sarabun";
+    src: url("../../assets/THSarabunNew.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+  }
+  
+  .thai-font {
+    font-family: "TH Sarabun", sans-serif;
+    font-size: 28px;
+  }
+  
+  

@@ -9,8 +9,6 @@ import {
   Modal,
   Form,
   Image,
-  Card,
-  Row,
 } from "react-bootstrap";
 import SwiperCore, { Pagination, Navigation } from "swiper";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -49,7 +47,6 @@ const Teacher_Dashboard = ({ s_id }) => {
   const [activityDate, setActivityDate] = useState("");
   const [lastDate, setLastDate] = useState("");
   const [activityPlace, setActivityPlace] = useState("");
-  const [activityStyle, setActivityStyle] = useState("");
   const [activityPicture, setActivityPicture] = useState(null);
   const [selectedImage, setSelectedImage] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState("");
@@ -76,6 +73,19 @@ const Teacher_Dashboard = ({ s_id }) => {
   const [showCheckEditModal, setShowCheckEditModal] = useState(false);
   const [editValue, setEditValue] = useState("");
 
+  const [hoursData, setHoursData] = useState({
+    total_pass_hours: 0,
+    total_pending_hours: 0,
+    total_edit_hours: 0,
+    total_fail_hours: 0,
+    year_pass_hours: 0,
+    year_pending_hours: 0,
+    year_edit_hours: 0,
+    year_fail_hours: 0,
+  });
+  const [showHoursModal, setShowHoursModal] = useState(false);
+
+
   const { search } = useLocation();
   const params = new URLSearchParams(search);
   const ciphertext = decodeURIComponent(params.get("q"));
@@ -85,6 +95,7 @@ const Teacher_Dashboard = ({ s_id }) => {
   const [fullname] = useState(plaintext.fullname);
   const [department] = useState(plaintext.department);
   const navigate = useNavigate();
+  const hostName = '192.168.0.119:3333'
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -96,36 +107,14 @@ const Teacher_Dashboard = ({ s_id }) => {
 
   useEffect(() => {
     // Make a GET request to retrieve the data from the server
-    fetch(`http://localhost:3333/teacher_form?teacher_id=${user_id}`)
+    fetch(`http://${hostName}/teacher_form?teacher_id=${user_id}`)
       .then((response) => response.json())
       .then((data) => {
         setTeacherForm(data);
+        console.log(data);
       })
       .catch((error) => console.error(error));
   }, [refresh]);
-
-  const validateForm = () => {
-    let errors = {};
-    if (!activityYear) {
-      errors.activityYear = "กรุณาเลือกปีการศึกษา/ภาคเรียน";
-    }
-    if (!activityName) {
-      errors.activityName = "กรุณากรอกชื่อกิจกรรม";
-    }
-    if (!activityDate) {
-      errors.activityDate = "กรุณาเลือกวันที่จัดกิจกรรม";
-    }
-    if (!lastDate) {
-      errors.lastDate = "กรุณาเลือกวันที่สิ้นสุดกิจกรรม";
-    }
-    if (!activityPlace) {
-      errors.activityPlace = "กรุณากรอกสถานที่ที่จัดกิจกรรม";
-    }
-    if (!selectedDepartment) {
-      errors.selectedDepartment = "กรุณาเลือกคณะ ศูนย์  สำนัก";
-    }
-    return errors;
-  };
 
   const handleFormUpdate = (edit) => {
     setLoading(true);
@@ -154,10 +143,6 @@ const Teacher_Dashboard = ({ s_id }) => {
       "activity_place",
       edit ? activityPlace || edit?.activity_place : activityPlace
     );
-    formData.append(
-      "activity_style",
-      edit ? activityStyle || edit?.activity_style : activityStyle
-    );
 
     if (selectedImage && selectedImage.length > 0) {
       selectedImage.forEach((file) => {
@@ -175,7 +160,7 @@ const Teacher_Dashboard = ({ s_id }) => {
     const departmentJSON = JSON.stringify(departmentData);
     formData.append("department", departmentJSON);
 
-    fetch(`http://localhost:3333/teacher_form_edit?t_id=${edit?.t_id}`, {
+    fetch(`http://${hostName}/teacher_form_edit?t_id=${edit?.t_id}`, {
       method: "POST",
       body: formData,
     })
@@ -285,9 +270,10 @@ const Teacher_Dashboard = ({ s_id }) => {
     setSelectedActivity(activity);
     setModalType("activity");
     setShowModal(true);
+    setRefresh(!refresh);
     try {
       const response = await fetch(
-        `http://localhost:3333/student_form_display?t_id=${activity.t_id}`
+        `http://${hostName}/student_form_display?t_id=${activity.t_id}`
       );
       const data = await response.json();
       const sortedData = [...data].sort((a, b) =>
@@ -309,9 +295,9 @@ const Teacher_Dashboard = ({ s_id }) => {
           fetch(
             `http://appz.vu.ac.th:8989/VuAPIVer1/select_student_image.php?stuid=${student.student_id}`
           ),
-          fetch(`http://localhost:3333/activity_pictures/${student.s_id}`),
+          fetch(`http://${hostName}/activity_pictures/${student.s_id}`),
           fetch(
-            `http://localhost:3333/student_total_hours?student_id=${student.student_id}`
+            `http://${hostName}/student_total_hours?student_id=${student.student_id}`
           ),
         ]);
 
@@ -325,7 +311,6 @@ const Teacher_Dashboard = ({ s_id }) => {
       const dataUri = `data:image/png;base64,${Per_Picture}`;
 
       setSelectedStudent(student);
-      console.log(selectedStudent);
       setStudentImage(dataUri);
 
       if (!activityResponse.ok) {
@@ -351,9 +336,15 @@ const Teacher_Dashboard = ({ s_id }) => {
         );
       }
 
-      const json = await totalHoursResponse.json();
-      const total_hours = Number(json[0].total_hours);
-      setSelectedStudentTotalHours(total_hours);
+      const totalHoursData = await totalHoursResponse.json();
+
+      // Extract the total pass hours from the response
+      const totalPassHours = Number(totalHoursData.total_pass_hours);
+
+      setSelectedStudentTotalHours(totalPassHours);
+
+      // Display the total pass hours
+      console.log(totalPassHours);
     } catch (error) {
       console.error(error);
       setStudentImage(null);
@@ -362,13 +353,45 @@ const Teacher_Dashboard = ({ s_id }) => {
     }
   };
 
+  const fetchTotalHours = async (selectedStudent) => {
+    try {
+      const totalResponse = await fetch(
+        `http://${hostName}/student_total_hours?student_id=${selectedStudent.student_id}`
+      );
+      const totalData = await totalResponse.json();
+      setHoursData(totalData);
+      console.log(totalData);
+      setShowHoursModal(true);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect((selectedStudent) => {
+    if (activityYear) {
+      const fetchYearHours = async () => {
+        try {
+          const yearResponse = await fetch(
+            `http://${hostName}/student_total_hours?student_id=${selectedStudent.student_id}&activity_year=${activityYear}`
+          );
+          const yearData = await yearResponse.json();
+          setHoursData((prevData) => ({ ...prevData, ...yearData }));
+        } catch (error) {
+          console.error(error);
+        }
+      };
+
+      fetchYearHours();
+    }
+  }, [activityYear]);
+
   const handleShowEditModal = async (teacherForm) => {
     try {
       const [editResponse, pictureResponse] = await Promise.all([
         fetch(
-          `http://localhost:3333/teacher_form_edit?t_id=${teacherForm.t_id}`
+          `http://${hostName}/teacher_form_edit?t_id=${teacherForm.t_id}`
         ),
-        fetch(`http://localhost:3333/teacher_pictures/${teacherForm.t_id}`),
+        fetch(`http://${hostName}/teacher_pictures/${teacherForm.t_id}`),
       ]);
 
       const editData = await editResponse.json();
@@ -468,7 +491,7 @@ const Teacher_Dashboard = ({ s_id }) => {
     setDisplayImage(null);
   };
 
-  async function handleButtonClick(status, student_id) {
+  async function handleButtonClick(status, s_id) {
     if (status === "ผ่าน") {
       const result = await Swal.fire({
         title: "ยืนยัน",
@@ -492,21 +515,22 @@ const Teacher_Dashboard = ({ s_id }) => {
           check_inside: status,
         };
 
-        fetch("http://localhost:3333/check-student-inside", {
+        fetch(`http://${hostName}/check-student-inside`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ student_id, status }),
+          body: JSON.stringify({ s_id, status }),
         }).then((response) => {
           if (response.ok) {
+            setRefresh(!refresh);
             setSelectedStudent(updatedActivity);
+            setModalType('activity')
             setStudentForm((prevState) =>
               prevState.map((activity) =>
-                activity.student_id === selectedStudent.student_id
+                activity.s_id === selectedStudent.s_id
                   ? updatedActivity
                   : activity
               )
             );
-
             Swal.fire({
               icon: "success",
               title: "อนุมัติกิจกรรมสำเร็จ",
@@ -516,7 +540,6 @@ const Teacher_Dashboard = ({ s_id }) => {
                 title: "thai-font",
               },
             });
-            setSelectedStudent(null);
           } else {
             console.error("Error submitting form");
             Swal.fire({
@@ -537,19 +560,20 @@ const Teacher_Dashboard = ({ s_id }) => {
       check_inside: editValue,
     };
 
-    fetch("http://localhost:3333/check-student-inside", {
+    fetch(`http://${hostName}/check-student-inside`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        student_id: selectedStudent.student_id,
+        s_id: selectedStudent.s_id,
         check_inside: editValue,
         status: "แก้ไข",
       }),
     }).then((response) => {
+      setRefresh(!refresh);
       setSelectedStudent(updatedActivity);
       setStudentForm((prevState) =>
         prevState.map((activity) =>
-          activity.student_id === selectedStudent.student_id
+          activity.s_id === selectedStudent.s_id
             ? updatedActivity
             : activity
         )
@@ -629,11 +653,11 @@ const Teacher_Dashboard = ({ s_id }) => {
           ระบบเพิ่มข้อมูลกิจกรรมจิตอาสาที่จัดขึ้นโดยคณะวิชา ศูนย์
           สำนักของมหาวิทยาลัย
         </h1>
-        <p className="nameText thai-font">
+        <p className="nameText thai-font" style={{ fontSize: 26 }}>
           รหัสบุคลากร:{" "}
           <span style={{ color: "green", fontWeight: "bold" }}>{user_id}</span>
         </p>
-        <p className="nameText thai-font">
+        <p className="nameText thai-font" style={{ fontSize: 26 }}>
           ชื่อ-นามสกุล:{" "}
           <span style={{ color: "green", fontWeight: "bold" }}>{fullname}</span>
         </p>
@@ -661,7 +685,7 @@ const Teacher_Dashboard = ({ s_id }) => {
             เพิ่มข้อมูลกิจกรรมที่จัดขึ้น
           </Button>
         </div>
-        <div className="table-header">
+        <div className="table-header table-teacher">
           <Table striped bordered hover style={{ maxWidth: "100%" }}>
             <thead className="thai-font" style={{ fontSize: 20 }}>
               <tr>
@@ -728,11 +752,17 @@ const Teacher_Dashboard = ({ s_id }) => {
                   </td>
                   <td>
                     {teacherForm.check_activity === null ? (
-                      <span style={{ color: "black" }}>รอการอนุมัติ</span>
+                      <span style={{ color: "black", fontWeight: "bold" }}>
+                        รอการอนุมัติ
+                      </span>
                     ) : teacherForm.check_activity === "ผ่าน" ? (
-                      <span style={{ color: "green" }}>ผ่าน</span>
+                      <span style={{ color: "green", fontWeight: "bold" }}>
+                        ผ่าน
+                      </span>
                     ) : (
-                      <span style={{ color: "orange" }}>แก้ไข</span>
+                      <span style={{ color: "orange", fontWeight: "bold" }}>
+                        แก้ไข
+                      </span>
                     )}
                   </td>
                   <td>
@@ -902,7 +932,7 @@ const Teacher_Dashboard = ({ s_id }) => {
                             }}
                             onClick={() => handleViewStudentInfo(student)}
                           >
-                            ดูข้อมูลกิจกรรม
+                            <Search style={{ fontSize: 16 }} />
                           </Button>
                         </td>
                       </tr>
@@ -977,12 +1007,13 @@ const Teacher_Dashboard = ({ s_id }) => {
                     {" "}
                     <strong>สาขา:</strong> {selectedStudent.maj_name}
                   </p>
-                  {selectedStudentTotalHours !== null && (
-                    <p>
-                      <strong>จำนวนชั่วโมงกิจกรรมทั้งหมด:</strong>{" "}
-                      {selectedStudentTotalHours} {""} ชั่วโมง
-                    </p>
-                  )}
+                  <Button
+              onClick={() => fetchTotalHours(selectedStudent)}
+              className="btn btn-success thai-font student-detail-text"
+              style={{ width: 200, padding: 1 }}
+            >
+              ดูข้อมูลชั่วโมงจิตอาสา
+            </Button>
                 </div>
               </div>
             </Modal.Body>
@@ -997,7 +1028,13 @@ const Teacher_Dashboard = ({ s_id }) => {
                 }}
               >
                 <div>
-                  <Modal.Title style={{ fontWeight: "bold", marginBottom: 10, color: '#F57D05' }}>
+                  <Modal.Title
+                    style={{
+                      fontWeight: "bold",
+                      marginBottom: 10,
+                      color: "#F57D05",
+                    }}
+                  >
                     ข้อมูลกิจกรรม
                   </Modal.Title>
                   <p>
@@ -1044,7 +1081,7 @@ const Teacher_Dashboard = ({ s_id }) => {
                     style={{
                       fontWeight: "bold",
                       marginBottom: 10,
-                      color: '#19A703',
+                      color: "#19A703",
                     }}
                   >
                     ข้อมูลการเข้าร่วมกิจกรรมของนักศึกษา
@@ -1139,7 +1176,7 @@ const Teacher_Dashboard = ({ s_id }) => {
                   variant="success"
                   style={{ fontSize: 20, marginRight: 20, width: 80 }}
                   onClick={() =>
-                    handleButtonClick("ผ่าน", selectedStudent.student_id)
+                    handleButtonClick("ผ่าน", selectedStudent.s_id)
                   }
                 >
                   ผ่าน
@@ -1148,7 +1185,7 @@ const Teacher_Dashboard = ({ s_id }) => {
                   variant="warning"
                   style={{ fontSize: 20, marginRight: 20, width: 80 }}
                   onClick={() =>
-                    handleButtonClick("แก้ไข", selectedStudent.student_id)
+                    handleButtonClick("แก้ไข", selectedStudent.s_id)
                   }
                 >
                   แก้ไข
@@ -1190,6 +1227,7 @@ const Teacher_Dashboard = ({ s_id }) => {
                             alt={`Activity ${index}`}
                             style={{
                               width: 500,
+                              height: 600,
                               display: "block",
                               margin: "auto",
                             }}
@@ -1364,17 +1402,6 @@ const Teacher_Dashboard = ({ s_id }) => {
                     onChange={(e) => setActivityPlace(e.target.value)}
                   />
                 </Form.Group>
-                <Form.Group
-                  controlId="activityPlace"
-                  style={{ marginBottom: 10 }}
-                >
-                  <Form.Label>ลักษณะกิจกรรม:</Form.Label>
-                  <Form.Control
-                    type="text"
-                    defaultValue={edit?.activity_style}
-                    onChange={(e) => setActivityStyle(e.target.value)}
-                  />
-                </Form.Group>
                 <Form.Group controlId="department" style={{ marginBottom: 15 }}>
                   <Form.Label>กิจกรรมจัดขึ้นโดย</Form.Label>
                   <Form.Control
@@ -1441,7 +1468,7 @@ const Teacher_Dashboard = ({ s_id }) => {
             }}
             centered
             className="thai-font modal-dialog-centered"
-            size="lg"
+            size="sm"
           >
             <Modal.Header closeButton>
               <Modal.Title style={{ fontWeight: "bold" }}>
@@ -1478,6 +1505,109 @@ const Teacher_Dashboard = ({ s_id }) => {
             </Modal.Footer>
           </Modal>
         )}
+        <Modal
+          show={showHoursModal}
+          onHide={() => {
+            setShowHoursModal(false);
+            setActivityYear("");
+          }}
+          className="thai-font"
+        >
+          <Modal.Header closeButton></Modal.Header>
+          <Modal.Body>
+            <h4 style={{ fontWeight: "bold" }}>ชั่วโมงจิตอาสาตลอดการศึกษา</h4>
+            <p className="thai-font hours-detail-text">
+              จำนวนชั่วโมงจิตอาสาที่ผ่านการอนุมัติทั้งหมด:{" "}
+              <span style={{ color: "green", fontWeight: "bold" }}>
+                {hoursData.total_pass_hours} {""} ชั่วโมง
+              </span>
+            </p>
+            <p className="thai-font hours-detail-text">
+              จำนวนชั่วโมงจิตอาสาที่รอการอนุมัติทั้งหมด:{" "}
+              <span style={{ color: "black", fontWeight: "bold" }}>
+                {hoursData.total_pending_hours}
+                {""} ชั่วโมง
+              </span>
+            </p>
+            <p className="thai-font hours-detail-text">
+              จำนวนชั่วโมงจิตอาสาที่รอการแก้ไขทั้งหมด:{" "}
+              <span style={{ color: "orange", fontWeight: "bold" }}>
+                {hoursData.total_edit_hours} {""} ชั่วโมง
+              </span>
+            </p>
+            <p className="thai-font hours-detail-text">
+              จำนวนชั่วโมงจิตอาสาที่ไม่ผ่านการอนุมัติทั้งหมด:{" "}
+              <span style={{ color: "red", fontWeight: "bold" }}>
+                {hoursData.total_fail_hours}
+                {""} ชั่วโมง
+              </span>
+            </p>
+            <hr />
+            <Form>
+              <h4 style={{ fontWeight: "bold" }}>
+                ชั่วโมงจิตอาสาต่อภาคการศึกษา
+              </h4>
+              <Form.Group controlId="activityYear" className="form-group">
+                <Form.Label style={{ fontSize: 22 }}>
+                  ปีการศึกษา/ภาคเรียน
+                </Form.Label>
+                <Form.Control
+                  as="select"
+                  value={activityYear}
+                  onChange={(e) => setActivityYear(e.target.value)}
+                >
+                  <option value="">-- เลือก --</option>
+                  <option value="2566/1">2566/1 </option>
+                  <option value="2566/2">2566/2</option>
+                  <option value="2565/1">2565/1</option>
+                  <option value="2565/2">2565/2</option>
+                  <option value="2565/summer">2565/summer</option>
+                </Form.Control>
+              </Form.Group>
+            </Form>
+            {activityYear && (
+              <div>
+                <p className="thai-font hours-detail-text">
+                  จำนวนชั่วโมงจิตอาสาที่ผ่านการอนุมัติ:{" "}
+                  <span style={{ color: "green", fontWeight: "bold" }}>
+                    {hoursData.year_pass_hours} {""} ชั่วโมง
+                  </span>
+                </p>
+                <p className="thai-font hours-detail-text">
+                  จำนวนชั่วโมงจิตอาสาที่รอการอนุมัติ:{" "}
+                  <span style={{ color: "black", fontWeight: "bold" }}>
+                    {hoursData.year_pending_hours}
+                    {""} ชั่วโมง
+                  </span>
+                </p>
+                <p className="thai-font hours-detail-text">
+                  จำนวนชั่วโมงจิตอาสาที่รอการแก้ไข:{" "}
+                  <span style={{ color: "orange", fontWeight: "bold" }}>
+                    {hoursData.year_edit_hours} {""} ชั่วโมง
+                  </span>
+                </p>
+                <p className="thai-font hours-detail-text">
+                  จำนวนชั่วโมงจิตอาสาที่ไม่ผ่านการอนุมัติ:{" "}
+                  <span style={{ color: "red", fontWeight: "bold" }}>
+                    {hoursData.year_fail_hours}
+                    {""} ชั่วโมง
+                  </span>
+                </p>
+              </div>
+            )}
+          </Modal.Body>{" "}
+          <Modal.Footer>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowHoursModal(false);
+                setActivityYear("");
+              }}
+            >
+              ปิด
+            </Button>
+          </Modal.Footer>
+        </Modal>
         {loading && (
           <div>
             <Loader className="thai-font" />

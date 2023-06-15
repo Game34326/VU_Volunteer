@@ -20,7 +20,6 @@ const Teacher_Form = () => {
   const [activityPlace, setActivityPlace] = useState("");
   const [activityPictures, setActivityPictures] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState("");
-  const [activityStyle, setActivityStyle] = useState("");
   const [formattedDate, setFormattedDate] = useState("");
   const [formattedLastDate, setFormattedLastDate] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,6 +35,7 @@ const Teacher_Form = () => {
   const [fullname] = useState(plaintext.fullname);
   const [department] = useState(plaintext.department);
   const navigate = useNavigate();
+  const hostName = '192.168.0.119:3333'
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -72,9 +72,6 @@ const Teacher_Form = () => {
     if (!selectedDepartment) {
       errors.selectedDepartment = "กรุณาเลือกคณะ ศูนย์  สำนัก";
     }
-    if (!activityStyle) {
-      errors.activityStyle = "กรุณากรอกลักษณะกิจกรรม";
-    }
     return errors;
   };
 
@@ -93,8 +90,6 @@ const Teacher_Form = () => {
       formData.append("teacher_id", user_id);
       formData.append("teacher_name", fullname);
       formData.append("activity_place", activityPlace);
-      formData.append("activity_style", activityStyle);
-
 
       activityPictures.forEach((file) => {
         formData.append("activity_pictures", file);
@@ -105,7 +100,7 @@ const Teacher_Form = () => {
       const departmentJSON = JSON.stringify(departmentData);
       formData.append("department", departmentJSON);
 
-      fetch("http://localhost:3333/teacher_form", {
+      fetch(`http://${hostName}/teacher_form`, {
         method: "POST",
         body: formData,
       })
@@ -329,24 +324,9 @@ const Teacher_Form = () => {
             )}
           </Form.Group>
 
-          <Form.Group controlId="activityStyle" className="form-group">
-            <Form.Label>
-              ลักษณะกิจกรรม <span style={{ color: "red" }}>*</span>
-            </Form.Label>
-            <Form.Control
-              type="text"
-              value={activityStyle}
-              onChange={(e) => setActivityStyle(e.target.value)}
-            />
-            {errors.activityStyle && (
-              <div className="text-danger">{errors.activityStyle}</div>
-            )}
-          </Form.Group>
-
-
           <Form.Group controlId="activityPicture" className="form-group">
             <Form.Label>รูปภาพกิจกรรม</Form.Label>
-            <p style={{fontSize: 18, color: 'gray'}} >หมายเหตุ: ภาพบรรยากาศของกิจกรรม</p>
+            <p style={{fontSize: 18, color: 'black'}} >หมายเหตุ: ภาพบรรยากาศของกิจกรรม (ถ้ามี)</p>
             <Form.Control
               type="file"
               accept="image/*"
